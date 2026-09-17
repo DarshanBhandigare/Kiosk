@@ -178,6 +178,9 @@ export interface CaseDetails {
   chief_complaint: string;
   hpi_summary?: string;
   department: string;
+  assigned_doctor_name?: string;
+  assigned_specialty?: string;
+  routing_reason?: string;
   status: 'WAITING_REVIEW' | 'TRIAGED' | 'UNDER_REVIEW' | 'APPROVED' | 'COMPLETED';
   has_red_flag: boolean;
   red_flag_severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM';

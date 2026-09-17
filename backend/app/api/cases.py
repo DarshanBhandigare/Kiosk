@@ -14,6 +14,7 @@ from backend.app.services.red_flag_engine import RedFlagEngine
 from backend.app.services.timeline_service import TimelineService
 from backend.app.services.summary_service import SummaryService
 from backend.app.services.audit_service import AuditService
+from backend.app.services.specialty_routing import route_case_to_specialist
 
 router = APIRouter(prefix="/cases", tags=["Cases & Queue"])
 
@@ -58,6 +59,9 @@ def list_cases(
             "patient_id_number": c.patient.patient_id_number if c.patient else None,
             "chief_complaint": c.chief_complaint,
             "department": c.department,
+            "assigned_doctor_name": c.assignment.doctor.full_name if c.assignment else None,
+            "assigned_specialty": c.assignment.specialty if c.assignment else None,
+            "routing_reason": c.assignment.routing_reason if c.assignment else None,
             "status": c.status,
             "has_red_flag": c.has_red_flag,
             "red_flag_severity": c.red_flag_severity,
@@ -180,7 +184,10 @@ async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):
     # 2. Build Chronological Medical Timeline
     TimelineService.build_case_timeline(db, new_case.id)
 
-    # 3. Generate AI Doctor Summary
+    # 3. Route to a configured specialty based on reported symptoms.
+    assignment = route_case_to_specialist(db, new_case)
+
+    # 4. Generate AI Doctor Summary
     await SummaryService.generate_and_save_summary(db, new_case.id)
 
     AuditService.log(
@@ -188,7 +195,7 @@ async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):
         action="CASE_CREATED_AND_SUBMITTED",
         resource_type="CASE",
         resource_id=new_case.id,
-        details={"token_number": new_case.token_number, "has_red_flag": new_case.has_red_flag}
+        details={"token_number": new_case.token_number, "has_red_flag": new_case.has_red_flag, "assigned_doctor": assignment.doctor.full_name if assignment else None}
     )
 
     return {
@@ -197,6 +204,7 @@ async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):
         "status": new_case.status,
         "has_red_flag": new_case.has_red_flag,
         "red_flag_severity": new_case.red_flag_severity,
+        "assigned_doctor_name": assignment.doctor.full_name if assignment else None,
         "submitted_at": new_case.submitted_at
     }
 
@@ -366,6 +374,11 @@ def get_case_details(id: str, db: Session = Depends(get_db)):
         "chief_complaint": case.chief_complaint,
         "hpi_summary": case.hpi_summary,
         "department": case.department,
+        "assignment": {
+            "doctor_name": case.assignment.doctor.full_name,
+            "specialty": case.assignment.specialty,
+            "routing_reason": case.assignment.routing_reason
+        } if case.assignment else None,
         "status": case.status,
         "has_red_flag": case.has_red_flag,
         "red_flag_severity": case.red_flag_severity,

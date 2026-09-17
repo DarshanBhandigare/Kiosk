@@ -93,6 +93,7 @@ def test_patient_registration_and_kiosk_flow():
     c_data = case_res.json()
     assert "token_number" in c_data
     assert c_data["has_red_flag"] is True
+    assert c_data["assigned_doctor_name"] == "Dr. Arvind Kulkarni, DM"
 
     # 6. Retrieve Case Details
     case_id = c_data["id"]
@@ -102,6 +103,7 @@ def test_patient_registration_and_kiosk_flow():
     assert detail_data["chief_complaint"] == "Severe retrosternal chest pain with left arm radiation"
     assert len(detail_data["timeline"]) > 0
     assert detail_data["ai_summary"] is not None
+    assert detail_data["assignment"]["specialty"] == "Cardiology"
 
 def test_document_upload_and_ocr():
     # Fetch patient 1

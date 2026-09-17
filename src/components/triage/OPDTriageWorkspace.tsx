@@ -167,7 +167,7 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap"><span className="font-mono text-xs font-bold text-sky-700">{item.token_number}</span><span className="font-bold">{item.patient_name}</span>{item.has_red_flag && <span className="text-[10px] font-bold text-rose-700">PRIORITY</span>}</div>
                     <p className="text-sm text-slate-700 mt-1">{item.chief_complaint}</p>
-                    <p className="text-xs text-slate-500 mt-1">{item.department} · {timeAgo(item.created_at)}</p>
+                    <p className="text-xs text-slate-500 mt-1">{item.department} · {item.assigned_doctor_name || 'Unassigned'} · {timeAgo(item.created_at)}</p>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-1 rounded-full ${status.className}`}>{status.label}</span>
                   <ChevronRight className="w-4 h-4 text-slate-400" />
@@ -185,6 +185,8 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
               <h2 className="font-bold text-lg">{selectedCase.patient_name}</h2>
               <p className="text-sm text-slate-700 mt-3">{selectedCase.chief_complaint}</p>
               <p className="text-xs text-slate-500 mt-3">{selectedCase.patient_age || '—'} years · {selectedCase.patient_sex || 'Not recorded'} · {selectedCase.department}</p>
+              <p className="text-xs text-sky-700 font-semibold mt-2">Suggested doctor: {selectedCase.assigned_doctor_name || 'General OPD allocation pending'}</p>
+              {selectedCase.routing_reason && <p className="text-xs text-slate-500 mt-1">{selectedCase.routing_reason}</p>}
               <div className="mt-5 space-y-2">
                 <button onClick={() => handleTriageAction('triage')} disabled={loading || selectedCase.status !== 'WAITING_REVIEW'} className="w-full py-2.5 rounded-xl bg-sky-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"><UserCheck className="w-4 h-4" />Mark Triaged</button>
                 {selectedCase.has_red_flag && <button onClick={() => handleTriageAction('escalate')} disabled={loading || selectedCase.status === 'UNDER_REVIEW'} className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"><Siren className="w-4 h-4" />Escalate to Doctor</button>}

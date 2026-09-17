@@ -54,6 +54,30 @@ def seed_database(db: Session):
             "role": "doctor"
         },
         {
+            "username": "dr.mehta",
+            "email": "dr.mehta@medikiosk.in",
+            "password": "Doctor@123",
+            "full_name": "Dr. Neha Mehta, DM",
+            "department": "Neurology",
+            "role": "doctor"
+        },
+        {
+            "username": "dr.khan",
+            "email": "dr.khan@medikiosk.in",
+            "password": "Doctor@123",
+            "full_name": "Dr. Farah Khan, MD",
+            "department": "Pulmonology",
+            "role": "doctor"
+        },
+        {
+            "username": "dr.iyer",
+            "email": "dr.iyer@medikiosk.in",
+            "password": "Doctor@123",
+            "full_name": "Dr. Vikram Iyer, MS",
+            "department": "Orthopaedics",
+            "role": "doctor"
+        },
+        {
             "username": "staff.priya",
             "email": "staff.priya@medikiosk.in",
             "password": "Staff@123",

@@ -137,6 +137,7 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
                   <th className="py-3 px-4">Demographics</th>
                   <th className="py-3 px-4">Chief Complaint</th>
                   <th className="py-3 px-4">Department</th>
+                  <th className="py-3 px-4">Assigned Doctor</th>
                   <th className="py-3 px-4">Triage Status</th>
                   <th className="py-3 px-4 text-right">Action</th>
                 </tr>
@@ -162,6 +163,9 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
                     </td>
                     <td className="py-3 px-4 text-slate-600 font-medium">
                       {item.department}
+                    </td>
+                    <td className="py-3 px-4 text-slate-600 font-medium">
+                      {item.assigned_doctor_name || 'Unassigned'}
                     </td>
                     <td className="py-3 px-4">
                       {item.has_red_flag ? (

@@ -45,6 +45,7 @@ class User(Base):
     role = relationship("Role", back_populates="users")
     doctor_reviews = relationship("DoctorReview", back_populates="doctor")
     doctor_notes = relationship("DoctorNote", back_populates="doctor")
+    case_assignments = relationship("CaseAssignment", back_populates="doctor")
     audit_logs = relationship("AuditLog", back_populates="user")
 
 class Patient(Base):
@@ -132,6 +133,20 @@ class Case(Base):
     red_flag_alerts = relationship("RedFlagAlert", back_populates="case")
     doctor_reviews = relationship("DoctorReview", back_populates="case")
     doctor_notes = relationship("DoctorNote", back_populates="case")
+    assignment = relationship("CaseAssignment", back_populates="case", uselist=False, cascade="all, delete-orphan")
+
+class CaseAssignment(Base):
+    __tablename__ = "case_assignments"
+
+    id = Column(String(36), primary_key=True, default=generate_uuid)
+    case_id = Column(String(36), ForeignKey("cases.id"), unique=True, nullable=False)
+    doctor_id = Column(String(36), ForeignKey("users.id"), nullable=False)
+    specialty = Column(String(100), nullable=False)
+    routing_reason = Column(String(500), nullable=False)
+    assigned_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    case = relationship("Case", back_populates="assignment")
+    doctor = relationship("User", back_populates="case_assignments")
 
 class Symptom(Base):
     __tablename__ = "symptoms"
