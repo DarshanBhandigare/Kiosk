@@ -1,4 +1,5 @@
 import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
+import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
 
 const API_BASE = '/api';
 
@@ -41,14 +42,83 @@ export const api = {
 
   // Patients & ABHA
   async verifyAbha(abha_id: string) {
-    const res = await fetch(`${API_BASE}/abdm/verify-abha`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ abha_id })
-    });
-    if (!res.ok) throw new Error('ABHA verification failed');
-    return res.json();
+    // Client-side mock registry — works offline or when backend doesn't have the profile
+    const MOCK_ABHA_PROFILES: Record<string, any> = {
+      '91-8842-1920-5412': {
+        status: 'VERIFIED', abha_id: '91-8842-1920-5412', abha_address: 'ramesh.patil@demo',
+        full_name: 'Ramesh Patil', gender: 'Male', date_of_birth: '1972-06-15',
+        mobile: '+91 98220 11223', address: 'Shivaji Nagar, Pune, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-9921-4412-8801': {
+        status: 'VERIFIED', abha_id: '91-9921-4412-8801', abha_address: 'sunita.deshmukh@demo',
+        full_name: 'Sunita Deshmukh', gender: 'Female', date_of_birth: '1984-03-22',
+        mobile: '+91 97654 33211', address: 'Kothrud, Pune, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-7765-1230-9801': {
+        status: 'VERIFIED', abha_id: '91-7765-1230-9801', abha_address: 'vijay.gaikwad@demo',
+        full_name: 'Vijay Gaikwad', gender: 'Male', date_of_birth: '1966-11-08',
+        mobile: '+91 94501 77832', address: 'Nashik Road, Nashik, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-8833-0122-4567': {
+        status: 'VERIFIED', abha_id: '91-8833-0122-4567', abha_address: 'priya.kulkarni@demo',
+        full_name: 'Priya Kulkarni', gender: 'Female', date_of_birth: '1990-07-14',
+        mobile: '+91 99230 55678', address: 'Aundh, Pune, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-6654-7781-0023': {
+        status: 'VERIFIED', abha_id: '91-6654-7781-0023', abha_address: 'meena.jadhav@demo',
+        full_name: 'Meena Jadhav', gender: 'Female', date_of_birth: '1958-02-28',
+        mobile: '+91 91234 88901', address: 'Aurangabad, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-7744-2288-9012': {
+        status: 'VERIFIED', abha_id: '91-7744-2288-9012', abha_address: 'arjun.sharma@demo',
+        full_name: 'Arjun Sharma', gender: 'Male', date_of_birth: '2003-09-03',
+        mobile: '+91 98765 43210', address: 'Baner, Pune, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-5533-9912-0045': {
+        status: 'VERIFIED', abha_id: '91-5533-9912-0045', abha_address: 'kavita.more@demo',
+        full_name: 'Kavita More', gender: 'Female', date_of_birth: '1978-12-19',
+        mobile: '+91 90128 34567', address: 'Hadapsar, Pune, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+      '91-4433-1122-8800': {
+        status: 'VERIFIED', abha_id: '91-4433-1122-8800', abha_address: 'suresh.nair@demo',
+        full_name: 'Suresh Nair', gender: 'Male', date_of_birth: '1952-04-10',
+        mobile: '+91 87654 90012', address: 'Bandra West, Mumbai, Maharashtra',
+        is_mock: true, disclaimer: 'Local demo profile.'
+      },
+    };
+
+    // Normalise the input to xx-xxxx-xxxx-xxxx format for lookup
+    const normalised = abha_id.trim();
+    const digitsOnly = normalised.replace(/\D/g, '');
+    const formatted = digitsOnly.length === 14
+      ? `${digitsOnly.slice(0, 2)}-${digitsOnly.slice(2, 6)}-${digitsOnly.slice(6, 10)}-${digitsOnly.slice(10)}`
+      : normalised;
+
+    try {
+      const res = await fetch(`${API_BASE}/abdm/verify-abha`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ abha_id: normalised })
+      });
+      if (res.ok) return res.json();
+    } catch {
+      // Backend unavailable — fall through to local mock
+    }
+
+    // Local mock fallback
+    const localProfile = MOCK_ABHA_PROFILES[formatted] || MOCK_ABHA_PROFILES[normalised];
+    if (localProfile) return localProfile;
+
+    throw new Error('ABHA verification failed');
   },
+
 
   async registerPatient(patientData: Partial<Patient>) {
     const res = await fetch(`${API_BASE}/patients`, {
@@ -185,15 +255,37 @@ export const api = {
   },
 
   async deleteCase(caseId: string) {
-    const res = await fetch(`${API_BASE}/cases/${caseId}`, {
-      method: 'DELETE',
-      headers: { ...getAuthHeader() }
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => null);
-      throw new Error(error?.detail || 'Unable to delete case');
+    // Remove from in-memory mock queue and mock details if present
+    const mockIdx = MOCK_QUEUE.findIndex((q) => q.id === caseId);
+    if (mockIdx !== -1) {
+      MOCK_QUEUE.splice(mockIdx, 1);
     }
-    return res.json();
+    if (MOCK_CASE_DETAILS[caseId]) {
+      delete MOCK_CASE_DETAILS[caseId];
+    }
+
+    try {
+      const res = await fetch(`${API_BASE}/cases/${caseId}`, {
+        method: 'DELETE',
+        headers: { ...getAuthHeader() }
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => null);
+        throw new Error(error?.detail || 'Unable to delete case');
+      }
+      const data = await res.json();
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('medikiosk_case_deleted', { detail: { caseId } }));
+        window.dispatchEvent(new CustomEvent('medikiosk_queue_updated'));
+      }
+      return data;
+    } catch (error) {
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('medikiosk_case_deleted', { detail: { caseId } }));
+        window.dispatchEvent(new CustomEvent('medikiosk_queue_updated'));
+      }
+      throw error;
+    }
   },
 
   // Doctor Actions

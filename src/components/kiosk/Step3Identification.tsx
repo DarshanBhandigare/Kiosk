@@ -52,10 +52,6 @@ export const Step3Identification: React.FC<Step3Props> = ({
     }
   };
 
-  const handleQuickFillRamesh = () => {
-    setAbhaInput('91-8842-1920-5412');
-    handleVerifyAbha('91-8842-1920-5412');
-  };
 
   return (
     <div className="max-w-2xl mx-auto py-6 px-4">
@@ -99,25 +95,33 @@ export const Step3Identification: React.FC<Step3Props> = ({
         </div>
 
         {/* Demo ABHA Quick Buttons */}
-        <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-slate-100">
-          <span className="text-xs text-slate-500">Demo profiles:</span>
-          <button
-            type="button"
-            onClick={handleQuickFillRamesh}
-            className="text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-md border border-teal-200 transition-colors"
-          >
-            Ramesh Patil (Cardiology)
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              setAbhaInput('91-9921-4412-8801');
-              handleVerifyAbha('91-9921-4412-8801');
-            }}
-            className="text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-1 rounded-md border border-teal-200 transition-colors"
-          >
-            Sunita Deshmukh (Ayurveda)
-          </button>
+        <div className="pt-3 border-t border-slate-100">
+          <p className="text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Demo Profiles — click to auto-fill:</p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { id: '91-8842-1920-5412', name: 'Ramesh Patil', label: 'M · 54 · Cardiology' },
+              { id: '91-9921-4412-8801', name: 'Sunita Deshmukh', label: 'F · 42 · Ayurveda' },
+              { id: '91-7765-1230-9801', name: 'Vijay Gaikwad', label: 'M · 60 · Ortho' },
+              { id: '91-8833-0122-4567', name: 'Priya Kulkarni', label: 'F · 36 · Gynaecology' },
+              { id: '91-6654-7781-0023', name: 'Meena Jadhav', label: 'F · 68 · Geriatrics' },
+              { id: '91-7744-2288-9012', name: 'Arjun Sharma', label: 'M · 23 · General OPD' },
+              { id: '91-5533-9912-0045', name: 'Kavita More', label: 'F · 48 · Neurology' },
+              { id: '91-4433-1122-8800', name: 'Suresh Nair', label: 'M · 74 · Cardiology' },
+            ].map((profile) => (
+              <button
+                key={profile.id}
+                type="button"
+                onClick={() => {
+                  setAbhaInput(profile.id);
+                  handleVerifyAbha(profile.id);
+                }}
+                className="text-left text-xs font-semibold text-teal-700 bg-teal-50 hover:bg-teal-100 px-2.5 py-2 rounded-lg border border-teal-200 transition-colors"
+              >
+                <span className="block font-bold text-slate-800 leading-tight">{profile.name}</span>
+                <span className="text-[10px] text-teal-600 font-medium">{profile.label}</span>
+              </button>
+            ))}
+          </div>
         </div>
 
         {errorMsg && (

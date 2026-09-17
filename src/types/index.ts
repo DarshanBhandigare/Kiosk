@@ -55,6 +55,7 @@ export interface MedicationItem {
   is_current?: boolean;
   source?: string;
   verified?: boolean;
+  notes?: string;
 }
 
 export interface AllergyItem {

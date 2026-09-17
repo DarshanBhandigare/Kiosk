@@ -27,14 +27,9 @@ export const Step1Welcome: React.FC<Step1Props> = ({
       <div className="bg-gradient-to-br from-teal-700 via-teal-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl mb-8 relative overflow-hidden">
         <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
         
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="w-12 h-12 rounded-2xl bg-white/10 backdrop-blur-md flex items-center justify-center border border-white/20">
-            <Activity className="w-7 h-7 text-teal-300" />
-          </div>
-          <div>
-            <span className="text-xs font-semibold tracking-wider uppercase text-teal-200">District General Hospital OPD</span>
-            <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{t.welcomeTitle}</h1>
-          </div>
+        <div className="mb-6">
+          <span className="text-xs font-semibold tracking-wider uppercase text-teal-200 block mb-1">District General Hospital OPD</span>
+          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{t.welcomeTitle}</h1>
         </div>
 
         <p className="text-base sm:text-xl text-teal-100/90 font-normal max-w-2xl leading-relaxed mb-8">

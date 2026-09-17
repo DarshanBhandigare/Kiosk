@@ -46,14 +46,37 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
     }
   }, [currentUser]);
 
+  // Synchronize queue whenever a case is deleted or updated across workspaces
+  useEffect(() => {
+    const handleCaseDeleted = (e: any) => {
+      const deletedId = e.detail?.caseId;
+      if (deletedId && selectedCaseId === deletedId) {
+        setSelectedCaseId(null);
+      }
+      fetchQueue();
+    };
+
+    const handleQueueUpdated = () => {
+      fetchQueue();
+    };
+
+    window.addEventListener('medikiosk_case_deleted', handleCaseDeleted);
+    window.addEventListener('medikiosk_queue_updated', handleQueueUpdated);
+
+    return () => {
+      window.removeEventListener('medikiosk_case_deleted', handleCaseDeleted);
+      window.removeEventListener('medikiosk_queue_updated', handleQueueUpdated);
+    };
+  }, [selectedCaseId]);
+
   const fetchQueue = async () => {
     setLoadingQueue(true);
     try {
       const data = await api.getQueue();
-      setQueue(data.length > 0 ? data : MOCK_QUEUE);
+      setQueue(Array.isArray(data) ? data : []);
     } catch (e) {
       console.warn('Queue fetch fallback to mock data:', e);
-      setQueue(MOCK_QUEUE);
+      setQueue([...MOCK_QUEUE]);
     } finally {
       setLoadingQueue(false);
     }
