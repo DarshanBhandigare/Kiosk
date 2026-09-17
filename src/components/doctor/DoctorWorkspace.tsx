@@ -285,6 +285,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
             fetchQueue();
           }}
           onCaseUpdated={fetchQueue}
+          onCaseDeleted={fetchQueue}
         />
       ) : activeTab === 'queue' ? (
         <OPDQueue

@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import {
   User, Activity, ShieldAlert, Heart, Pill, AlertTriangle,
   FileText, Clock, CheckCircle2, AlertCircle, Edit3, Save,
-  Plus, Stethoscope, Sparkles, Send, Check, Eye
+  Plus, Stethoscope, Sparkles, Send, Check, Eye, Trash2
 } from 'lucide-react';
 import { CaseDetails } from '../../types';
 import { Badge } from '../common/Badge';
@@ -13,12 +13,14 @@ interface PatientCaseViewProps {
   caseId: string;
   onBack: () => void;
   onCaseUpdated?: () => void;
+  onCaseDeleted?: () => void;
 }
 
 export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   caseId,
   onBack,
-  onCaseUpdated
+  onCaseUpdated,
+  onCaseDeleted
 }) => {
   const [caseData, setCaseData] = useState<CaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
@@ -29,9 +31,14 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   const [approvalSuccess, setApprovalSuccess] = useState(false);
   const [approvalError, setApprovalError] = useState('');
   const [doctors, setDoctors] = useState<Array<{ id: string; full_name: string; department?: string }>>([]);
+  const [doctorLoadError, setDoctorLoadError] = useState('');
+  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [isAssigning, setIsAssigning] = useState(false);
   const [assignmentMessage, setAssignmentMessage] = useState('');
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchCase();
@@ -39,10 +46,15 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   }, [caseId]);
 
   const loadDoctors = async () => {
+    setIsLoadingDoctors(true);
+    setDoctorLoadError('');
     try {
       setDoctors(await api.getAssignableDoctors());
     } catch (error) {
       console.warn('Unable to load doctors:', error);
+      setDoctorLoadError(error instanceof Error ? error.message : 'Unable to load doctors.');
+    } finally {
+      setIsLoadingDoctors(false);
     }
   };
 
@@ -150,6 +162,21 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
     }
   };
 
+  const handleDeleteCase = async () => {
+    if (!caseData) return;
+    setIsDeleting(true);
+    setDeleteError('');
+    try {
+      await api.deleteCase(caseData.id);
+      onCaseDeleted?.();
+      onBack();
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Unable to delete case.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
   const handleToggleMedVerification = async (medId?: string) => {
     if (!caseData || !medId) return;
     const updatedMeds = caseData.medications.map((m) =>
@@ -223,6 +250,13 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
               <span>{isApproving ? 'Approving...' : 'Approve & Verify Case'}</span>
             </button>
           )}
+          <button
+            onClick={() => setShowDeleteConfirm(true)}
+            className="p-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50"
+            title="Delete case"
+          >
+            <Trash2 className="w-4 h-4" />
+          </button>
         </div>
       </div>
 
@@ -234,11 +268,15 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
         <select
           value={selectedDoctorId}
           onChange={(event) => setSelectedDoctorId(event.target.value)}
+          disabled={isLoadingDoctors || doctors.length === 0}
           className="flex-1 min-w-52 p-2.5 rounded-xl border border-slate-300 bg-white text-sm"
         >
-          <option value="">Select a doctor</option>
+          <option value="">{isLoadingDoctors ? 'Loading doctors...' : doctors.length ? 'Select a doctor' : 'No doctors loaded'}</option>
           {doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.full_name} — {doctor.department}</option>)}
         </select>
+        <button onClick={loadDoctors} disabled={isLoadingDoctors} className="px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold disabled:opacity-50">
+          Reload
+        </button>
         <button
           onClick={handleAssignDoctor}
           disabled={!selectedDoctorId || isAssigning}
@@ -249,9 +287,29 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
         {caseData.assignment && <span className="text-xs font-semibold text-sky-700">Current: {caseData.assignment.doctor_name}</span>}
       </div>
 
+      {doctorLoadError && (
+        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
+          Could not load live doctors: {doctorLoadError}. Restart the backend, sign in again as a doctor or triage staff member, then click Reload.
+        </div>
+      )}
+
       {assignmentMessage && (
         <div className={`rounded-xl border p-3 text-sm font-semibold ${assignmentMessage.startsWith('Assigned') ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
           {assignmentMessage}
+        </div>
+      )}
+
+      {showDeleteConfirm && (
+        <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">
+          <div className="flex-1">
+            <p className="text-sm font-bold text-rose-900">Delete case {caseData.token_number}?</p>
+            <p className="text-xs text-rose-700">This permanently removes this case and its linked intake records. The patient profile is kept.</p>
+            {deleteError && <p className="text-xs font-semibold text-rose-700 mt-2">{deleteError}</p>}
+          </div>
+          <div className="flex gap-2">
+            <button onClick={() => setShowDeleteConfirm(false)} disabled={isDeleting} className="px-3 py-2 rounded-xl border border-slate-300 bg-white text-xs font-bold">Cancel</button>
+            <button onClick={handleDeleteCase} disabled={isDeleting} className="px-3 py-2 rounded-xl bg-rose-600 text-white text-xs font-bold disabled:opacity-50">{isDeleting ? 'Deleting...' : 'Delete Case'}</button>
+          </div>
         </div>
       )}
 

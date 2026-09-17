@@ -184,6 +184,18 @@ export const api = {
     return res.json();
   },
 
+  async deleteCase(caseId: string) {
+    const res = await fetch(`${API_BASE}/cases/${caseId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeader() }
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Unable to delete case');
+    }
+    return res.json();
+  },
+
   // Doctor Actions
   async addDoctorNote(caseId: string, content: string, noteType = 'CLINICAL_OBSERVATION') {
     const res = await fetch(`${API_BASE}/doctor/cases/${caseId}/notes`, {

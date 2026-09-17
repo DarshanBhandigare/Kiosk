@@ -7,7 +7,8 @@ from backend.app.database.session import get_db
 from backend.app.models.models import (
     Case, Patient, CaseSymptom, MedicalHistory, Medication, Allergy,
     FamilyHistory, LifestyleInformation, AyurvedaProfile, Document,
-    MedicalTimelineEvent, RedFlagAlert, DoctorNote, DoctorReview, CaseAssignment, Role, User
+    MedicalTimelineEvent, RedFlagAlert, DoctorNote, DoctorReview, CaseAssignment, Role, User,
+    InterviewResponse
 )
 from backend.app.schemas.schemas import CaseCreate, CaseResponse, DoctorAssignmentRequest
 from backend.app.security.auth import require_staff_or_doctor
@@ -125,6 +126,38 @@ def assign_case_doctor(
         "department": case.department,
         "routing_reason": routing_reason,
     }
+
+@router.delete("/{case_id}")
+def delete_case(
+    case_id: str,
+    current_user: User = Depends(require_staff_or_doctor),
+    db: Session = Depends(get_db),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    token_number = case.token_number
+    db.query(Document).filter(Document.case_id == case.id).delete(synchronize_session=False)
+    db.query(MedicalTimelineEvent).filter(MedicalTimelineEvent.case_id == case.id).delete(synchronize_session=False)
+    db.query(RedFlagAlert).filter(RedFlagAlert.case_id == case.id).delete(synchronize_session=False)
+    db.query(DoctorNote).filter(DoctorNote.case_id == case.id).delete(synchronize_session=False)
+    db.query(DoctorReview).filter(DoctorReview.case_id == case.id).delete(synchronize_session=False)
+    db.query(CaseAssignment).filter(CaseAssignment.case_id == case.id).delete(synchronize_session=False)
+    if case.session_id:
+        db.query(InterviewResponse).filter(InterviewResponse.session_id == case.session_id).delete(synchronize_session=False)
+    db.delete(case)
+    db.commit()
+
+    AuditService.log(
+        db=db,
+        action="CASE_DELETED",
+        resource_type="CASE",
+        resource_id=case_id,
+        user_id=current_user.id,
+        details={"token_number": token_number, "deleted_by": current_user.full_name},
+    )
+    return {"status": "SUCCESS", "case_id": case_id, "token_number": token_number}
 
 @router.post("")
 async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):

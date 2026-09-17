@@ -237,3 +237,15 @@ def test_staff_can_manually_assign_case_to_specialist():
 
     assert assign_response.status_code == 200
     assert assign_response.json()["doctor_name"] == cardiologist["full_name"]
+
+
+def test_staff_can_delete_case():
+    login_response = client.post("/api/auth/login", data={"username": "staff.priya", "password": "Staff@123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+    patient_id = client.get("/api/cases").json()[0]["patient_id"]
+    created_case = client.post("/api/cases", json={"patient_id": patient_id, "chief_complaint": "Case to remove"}).json()
+
+    delete_response = client.delete(f"/api/cases/{created_case['id']}", headers=headers)
+
+    assert delete_response.status_code == 200
+    assert client.get(f"/api/cases/{created_case['id']}").status_code == 404
