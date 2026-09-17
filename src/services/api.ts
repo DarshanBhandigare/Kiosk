@@ -1,4 +1,4 @@
-import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
+﻿import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
 import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
 
 const API_BASE = '/api';
@@ -42,7 +42,7 @@ export const api = {
 
   // Patients & ABHA
   async verifyAbha(abha_id: string) {
-    // Client-side mock registry — works offline or when backend doesn't have the profile
+    // Client-side mock registry â€” works offline or when backend doesn't have the profile
     const MOCK_ABHA_PROFILES: Record<string, any> = {
       '91-8842-1920-5412': {
         status: 'VERIFIED', abha_id: '91-8842-1920-5412', abha_address: 'ramesh.patil@demo',
@@ -109,7 +109,7 @@ export const api = {
       });
       if (res.ok) return res.json();
     } catch {
-      // Backend unavailable — fall through to local mock
+      // Backend unavailable â€” fall through to local mock
     }
 
     // Local mock fallback
@@ -189,7 +189,10 @@ export const api = {
       method: 'POST',
       body: formData
     });
-    if (!res.ok) throw new Error('Document upload failed');
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Document upload failed');
+    }
     return res.json();
   },
 
@@ -375,3 +378,4 @@ export const api = {
     return res.json();
   }
 };
+

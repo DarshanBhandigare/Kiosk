@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, ArrowLeft, Eye } from 'lucide-react';
 import { LanguageCode, translations } from '../../i18n/translations';
 import { api } from '../../services/api';
@@ -24,6 +24,7 @@ export const Step9DocumentScanner: React.FC<Step9Props> = ({
   const [uploading, setUploading] = useState(false);
   const [selectedDocType, setSelectedDocType] = useState('PRESCRIPTION');
   const [previewDoc, setPreviewDoc] = useState<any>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   const sampleReports = [
     {
@@ -69,7 +70,8 @@ Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`
       const docRes = await api.uploadDocument(patientId || 'temp-id', file, sample.type);
       setScannedDocuments([...scannedDocuments, docRes]);
       setPreviewDoc(docRes);
-    } catch (err) {
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Unable to upload and scan this document.');
       console.warn('Sample doc upload fallback:', err);
       // Local demo fallback
       const mockDoc = {
@@ -93,6 +95,7 @@ Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`
       setPreviewDoc(mockDoc);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -102,12 +105,15 @@ Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`
     setUploading(true);
     try {
       const docRes = await api.uploadDocument(patientId || 'temp-id', file, selectedDocType);
+      if (docRes.ocr_status !== 'COMPLETED') throw new Error('Text extraction could not be completed. Check live OCR configuration and try again.');
       setScannedDocuments([...scannedDocuments, docRes]);
       setPreviewDoc(docRes);
-    } catch (err) {
+    } catch (err: unknown) {
+      setUploadError(err instanceof Error ? err.message : 'Unable to upload and scan this document.');
       console.warn('Document upload error:', err);
     } finally {
       setUploading(false);
+      e.target.value = '';
     }
   };
 
@@ -253,3 +259,4 @@ Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`
     </div>
   );
 };
+

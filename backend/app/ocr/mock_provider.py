@@ -1,4 +1,4 @@
-import os
+﻿import os
 import re
 from typing import Dict, Any, List
 from backend.app.ocr.base import BaseOCRProvider
@@ -104,6 +104,9 @@ Advice on Discharge: Quadriceps strengthening exercises. Suture removal on 16/11
         mime_type: str,
         document_type: str = "PRESCRIPTION"
     ) -> Dict[str, Any]:
+        if not mime_type.startswith("text/"):
+            raise RuntimeError("Live OCR is not configured. Set GEMINI_API_KEY to scan PDF and image documents.")
+
         # If file is text file, read actual text
         real_text = ""
         if os.path.exists(file_path) and mime_type.startswith("text/"):
@@ -134,3 +137,4 @@ Advice on Discharge: Quadriceps strengthening exercises. Suture removal on 16/11
 
 def get_ocr_provider() -> BaseOCRProvider:
     return MockOCRProvider()
+
