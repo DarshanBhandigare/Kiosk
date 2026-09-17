@@ -59,17 +59,12 @@ export const Step6ChiefComplaint: React.FC<Step6Props> = ({
     }
   }, [language, voiceGuidance]);
 
-  const handleToggleListening = async () => {
+  const handleToggleListening = () => {
     if (isListening) {
       SpeechService.stopListening();
       setIsListening(false);
     } else {
       setErrorMsg('');
-      const microphoneError = await SpeechService.requestMicrophoneAccess();
-      if (microphoneError) {
-        setErrorMsg(microphoneError);
-        return;
-      }
       setIsListening(true);
       SpeechService.startListening(
         language,

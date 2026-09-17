@@ -291,6 +291,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
         <OPDQueue
           queue={queue}
           loading={loadingQueue}
+          currentDoctorName={currentUser?.full_name}
           onSelectCase={(id) => setSelectedCaseId(id)}
           onRefresh={fetchQueue}
         />

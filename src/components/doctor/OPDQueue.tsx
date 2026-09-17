@@ -6,21 +6,62 @@ import { Badge } from '../common/Badge';
 interface OPDQueueProps {
   queue: QueueItem[];
   loading: boolean;
+  currentDoctorName?: string;
   onSelectCase: (caseId: string) => void;
   onRefresh: () => void;
 }
 
+const isUnassignedCase = (item: QueueItem) => {
+  return (
+    !item.assigned_doctor_name ||
+    item.assigned_doctor_name.trim() === '' ||
+    item.assigned_doctor_name.trim().toLowerCase() === 'unassigned'
+  );
+};
+
+const isAssignedToDoctor = (item: QueueItem, doctorName?: string) => {
+  if (!doctorName || isUnassignedCase(item)) return false;
+  const assigned = item.assigned_doctor_name!.toLowerCase().trim();
+  const doc = doctorName.toLowerCase().trim();
+
+  if (assigned === doc || assigned.includes(doc) || doc.includes(assigned)) return true;
+
+  const words = doc
+    .replace(/\b(dr|md|dm|ms|mbbs|general|physician|cardiologist)\b/gi, '')
+    .replace(/[^a-z0-9\s]/gi, ' ')
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w.length > 2);
+
+  return words.some((w) => assigned.includes(w));
+};
+
 export const OPDQueue: React.FC<OPDQueueProps> = ({
   queue,
   loading,
+  currentDoctorName,
   onSelectCase,
   onRefresh
 }) => {
-  const [filterTab, setFilterTab] = useState<'ALL' | 'PRIORITY' | 'WAITING' | 'APPROVED' | 'COMPLETED'>('ALL');
+  const [filterTab, setFilterTab] = useState<'MY_CASES' | 'ALL' | 'UNASSIGNED' | 'PRIORITY' | 'WAITING' | 'APPROVED' | 'COMPLETED'>(
+    currentDoctorName ? 'MY_CASES' : 'ALL'
+  );
   const [searchQuery, setSearchQuery] = useState('');
+
+  const myCasesCount = queue.filter((i) => isAssignedToDoctor(i, currentDoctorName)).length;
+  const unassignedCount = queue.filter((i) => isUnassignedCase(i)).length;
+  const redFlagCount = queue.filter((i) => i.has_red_flag).length;
+  const waitingCount = queue.filter((i) => i.status === 'WAITING_REVIEW').length;
+  const approvedCount = queue.filter((i) => i.status === 'APPROVED').length;
 
   const filteredQueue = queue.filter((item) => {
     // Tab filter
+    if (filterTab === 'MY_CASES') {
+      if (!isAssignedToDoctor(item, currentDoctorName)) return false;
+    }
+    if (filterTab === 'UNASSIGNED') {
+      if (!isUnassignedCase(item)) return false;
+    }
     if (filterTab === 'PRIORITY' && !item.has_red_flag) return false;
     if (filterTab === 'WAITING' && item.status !== 'WAITING_REVIEW') return false;
     if (filterTab === 'APPROVED' && item.status !== 'APPROVED') return false;
@@ -33,15 +74,12 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
         item.token_number.toLowerCase().includes(q) ||
         item.patient_name.toLowerCase().includes(q) ||
         item.chief_complaint.toLowerCase().includes(q) ||
-        item.department.toLowerCase().includes(q)
+        item.department.toLowerCase().includes(q) ||
+        (item.assigned_doctor_name && item.assigned_doctor_name.toLowerCase().includes(q))
       );
     }
     return true;
   });
-
-  const redFlagCount = queue.filter((i) => i.has_red_flag).length;
-  const waitingCount = queue.filter((i) => i.status === 'WAITING_REVIEW').length;
-  const approvedCount = queue.filter((i) => i.status === 'APPROVED').length;
 
   return (
     <div className="space-y-6">
@@ -75,7 +113,9 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
       <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
         <div className="flex flex-wrap items-center gap-2">
           {[
+            ...(currentDoctorName ? [{ id: 'MY_CASES', label: `👨‍⚕️ Assigned to Me (${myCasesCount})` }] : []),
             { id: 'ALL', label: `All Patients (${queue.length})` },
+            { id: 'UNASSIGNED', label: `⏳ Unassigned (${unassignedCount})` },
             { id: 'PRIORITY', label: `🚨 Priority Red-Flag (${redFlagCount})` },
             { id: 'WAITING', label: `Waiting Review (${waitingCount})` },
             { id: 'APPROVED', label: `Approved (${approvedCount})` }

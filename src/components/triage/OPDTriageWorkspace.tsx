@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import {
   Activity, AlertTriangle, CheckCircle2, ChevronRight, Clock, Lock,
-  RefreshCw, ShieldAlert, Siren, UserCheck, Users
+  RefreshCw, ShieldAlert, Siren, UserCheck, Users, UserX
 } from 'lucide-react';
 import { QueueItem, RedFlagAlert } from '../../types';
 import { api } from '../../services/api';
@@ -32,8 +32,9 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
   const [password, setPassword] = useState('Staff@123');
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [alerts, setAlerts] = useState<RedFlagAlert[]>([]);
+  const [doctors, setDoctors] = useState<{ id: string; full_name: string; department?: string }[]>([]);
   const [selectedCase, setSelectedCase] = useState<QueueItem | null>(null);
-  const [filter, setFilter] = useState<'all' | 'priority' | 'waiting' | 'triaged'>('all');
+  const [filter, setFilter] = useState<'all' | 'priority' | 'waiting' | 'unassigned' | 'triaged'>('all');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -41,9 +42,14 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
     setLoading(true);
     setError('');
     try {
-      const [cases, activeAlerts] = await Promise.all([api.getQueue(), api.getAlerts(false)]);
+      const [cases, activeAlerts, docList] = await Promise.all([
+        api.getQueue(),
+        api.getAlerts(false),
+        api.getAssignableDoctors().catch(() => [])
+      ]);
       setQueue(cases);
       setAlerts(activeAlerts);
+      if (Array.isArray(docList)) setDoctors(docList);
       setSelectedCase((current) => cases.find((item) => item.id === current?.id) || null);
     } catch (loadError) {
       setError(loadError instanceof Error ? loadError.message : 'Unable to load the live OPD queue.');
@@ -79,6 +85,20 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
     api.logout();
     setCurrentUser(null);
     parentLogout?.();
+  };
+
+  const handleAssignDoctor = async (doctorId: string) => {
+    if (!selectedCase || !doctorId) return;
+    setLoading(true);
+    setError('');
+    try {
+      await api.assignCaseDoctor(selectedCase.id, doctorId);
+      await loadTriageData();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to assign doctor.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleTriageAction = async (action: 'triage' | 'escalate') => {
@@ -121,10 +141,24 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
     );
   }
 
+  const isUnassigned = (item: QueueItem) =>
+    !item.assigned_doctor_name ||
+    item.assigned_doctor_name.trim() === '' ||
+    item.assigned_doctor_name.trim().toLowerCase() === 'unassigned';
+
   const priorityCases = queue.filter((item) => item.has_red_flag);
   const waitingCases = queue.filter((item) => item.status === 'WAITING_REVIEW');
+  const unassignedCases = queue.filter(isUnassigned);
   const triagedCases = queue.filter((item) => item.status === 'TRIAGED');
-  const filteredQueue = filter === 'priority' ? priorityCases : filter === 'waiting' ? waitingCases : filter === 'triaged' ? triagedCases : queue;
+  const filteredQueue = filter === 'priority'
+    ? priorityCases
+    : filter === 'waiting'
+    ? waitingCases
+    : filter === 'unassigned'
+    ? unassignedCases
+    : filter === 'triaged'
+    ? triagedCases
+    : queue;
 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6">
@@ -141,17 +175,18 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
 
       {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 mb-6">
         {[
-          ['all', 'Total in OPD', queue.length, Users],
-          ['priority', 'Priority cases', priorityCases.length, ShieldAlert],
-          ['waiting', 'Waiting triage', waitingCases.length, Clock],
-          ['triaged', 'Ready for doctor', triagedCases.length, CheckCircle2],
-        ].map(([id, label, count, Icon]) => (
-          <button key={id as string} onClick={() => setFilter(id as typeof filter)} className={`rounded-2xl border p-4 text-left ${filter === id ? 'border-sky-500 bg-sky-50' : 'border-slate-200 bg-white'}`}>
+          { id: 'all', label: 'Total in OPD', count: queue.length, icon: Users },
+          { id: 'unassigned', label: 'Unassigned', count: unassignedCases.length, icon: UserX },
+          { id: 'priority', label: 'Priority cases', count: priorityCases.length, icon: ShieldAlert },
+          { id: 'waiting', label: 'Waiting triage', count: waitingCases.length, icon: Clock },
+          { id: 'triaged', label: 'Ready for doctor', count: triagedCases.length, icon: CheckCircle2 },
+        ].map(({ id, label, count, icon: Icon }) => (
+          <button key={id} onClick={() => setFilter(id as typeof filter)} className={`rounded-2xl border p-4 text-left cursor-pointer transition-all ${filter === id ? 'border-sky-500 bg-sky-50 shadow-xs' : 'border-slate-200 bg-white hover:border-slate-300'}`}>
             <Icon className="w-5 h-5 text-sky-600 mb-2" />
-            <p className="text-2xl font-black">{count as number}</p>
-            <p className="text-xs text-slate-500">{label as string}</p>
+            <p className="text-2xl font-black">{count}</p>
+            <p className="text-xs text-slate-500">{label}</p>
           </button>
         ))}
       </div>
@@ -185,11 +220,34 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
               <h2 className="font-bold text-lg">{selectedCase.patient_name}</h2>
               <p className="text-sm text-slate-700 mt-3">{selectedCase.chief_complaint}</p>
               <p className="text-xs text-slate-500 mt-3">{selectedCase.patient_age || '—'} years · {selectedCase.patient_sex || 'Not recorded'} · {selectedCase.department}</p>
-              <p className="text-xs text-sky-700 font-semibold mt-2">Suggested doctor: {selectedCase.assigned_doctor_name || 'General OPD allocation pending'}</p>
-              {selectedCase.routing_reason && <p className="text-xs text-slate-500 mt-1">{selectedCase.routing_reason}</p>}
-              <div className="mt-5 space-y-2">
-                <button onClick={() => handleTriageAction('triage')} disabled={loading || selectedCase.status !== 'WAITING_REVIEW'} className="w-full py-2.5 rounded-xl bg-sky-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"><UserCheck className="w-4 h-4" />Mark Triaged</button>
-                {selectedCase.has_red_flag && <button onClick={() => handleTriageAction('escalate')} disabled={loading || selectedCase.status === 'UNDER_REVIEW'} className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2"><Siren className="w-4 h-4" />Escalate to Doctor</button>}
+              <div className="mt-3 pt-3 border-t border-slate-100">
+                <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
+                  Assign / Re-route Doctor:
+                </label>
+                <div className="flex items-center gap-2">
+                  <select
+                    defaultValue=""
+                    onChange={(e) => {
+                      if (e.target.value) handleAssignDoctor(e.target.value);
+                    }}
+                    disabled={loading}
+                    className="flex-1 p-2 rounded-xl border border-slate-300 text-xs bg-slate-50 focus:bg-white focus:border-sky-600"
+                  >
+                    <option value="">
+                      {selectedCase.assigned_doctor_name ? `Current: ${selectedCase.assigned_doctor_name}` : 'Select Doctor...'}
+                    </option>
+                    {doctors.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.full_name} ({doc.department || 'General'})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              <div className="mt-4 space-y-2">
+                <button onClick={() => handleTriageAction('triage')} disabled={loading || selectedCase.status !== 'WAITING_REVIEW'} className="w-full py-2.5 rounded-xl bg-sky-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer hover:bg-sky-700 transition-colors"><UserCheck className="w-4 h-4" />Mark Triaged</button>
+                {selectedCase.has_red_flag && <button onClick={() => handleTriageAction('escalate')} disabled={loading || selectedCase.status === 'UNDER_REVIEW'} className="w-full py-2.5 rounded-xl bg-rose-600 text-white font-bold text-sm disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer hover:bg-rose-700 transition-colors"><Siren className="w-4 h-4" />Escalate to Doctor</button>}
               </div>
             </div>
           ) : <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">Select a live OPD case to triage it.</div>}

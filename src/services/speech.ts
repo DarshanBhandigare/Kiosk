@@ -19,35 +19,23 @@ export class SpeechService {
       case 'service-not-allowed':
       case 'NotAllowedError':
       case 'SecurityError':
-        return 'Microphone permission is blocked. Allow microphone access for this site, then try again.';
+        return 'Microphone permission blocked. Click the lock 🔒 or microphone 🎙️ icon in your browser address bar to allow access.';
       case 'no-speech':
-        return 'No speech was detected. Check that your microphone is connected and speak closer to it.';
+        return 'No speech was detected. Speak clearly into the microphone or use the quick buttons below.';
       case 'audio-capture':
       case 'NotFoundError':
-        return 'No microphone is available. Connect or enable a microphone, then try again.';
+        return 'No microphone found. Please plug in or enable a microphone in Windows Sound Settings.';
       case 'NotReadableError':
-        return 'Your microphone is being used by another app. Close that app and try again.';
+        return 'Microphone is currently in use by another program. Close other apps using your mic.';
       case 'network':
-        return 'Speech recognition needs an internet connection in this browser. Check your connection and try again.';
+        return 'Browser speech recognition requires an internet connection. Check your network or use touch/keyboard options.';
       case 'language-not-supported':
       case 'language-unavailable':
-        return 'This browser does not support speech recognition for the selected language.';
+        return 'Speech recognition is not available for this language in this browser. Try English or Hindi.';
+      case 'aborted':
+        return '';
       default:
-        return 'Speech recognition is unavailable. Use the latest Chrome or Edge and allow microphone access.';
-    }
-  }
-
-  static async requestMicrophoneAccess(): Promise<string | null> {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      return 'Microphone access is unavailable in this browser. Use the latest Chrome or Edge.';
-    }
-
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      stream.getTracks().forEach((track) => track.stop());
-      return null;
-    } catch (error) {
-      return this.getRecognitionErrorMessage(error);
+        return 'Microphone listening stopped. You can click to retry or choose an option below.';
     }
   }
 
@@ -58,15 +46,19 @@ export class SpeechService {
     onEnd: () => void
   ) {
     if (!this.isSpeechRecognitionSupported()) {
-      onError('Speech recognition is not supported in this browser.');
+      onError('Speech recognition is not supported in this browser. Please use Google Chrome or Microsoft Edge.');
       return null;
     }
+
+    // Stop any previously running instance
+    this.stopListening();
 
     try {
       const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
       const rec = new SpeechRecognition();
       rec.continuous = false;
       rec.interimResults = true;
+      rec.maxAlternatives = 1;
 
       const langMap = {
         en: 'en-IN',
@@ -80,14 +72,19 @@ export class SpeechService {
         for (let i = event.resultIndex; i < event.results.length; ++i) {
           transcript += event.results[i][0].transcript;
         }
-        onResult(transcript);
+        if (transcript.trim()) {
+          onResult(transcript);
+        }
       };
 
       rec.onerror = (event: any) => {
-        onError(event.error);
+        if (event.error !== 'aborted') {
+          onError(event.error || event);
+        }
       };
 
       rec.onend = () => {
+        this.recognition = null;
         onEnd();
       };
 
@@ -103,7 +100,7 @@ export class SpeechService {
   static stopListening() {
     if (this.recognition) {
       try {
-        this.recognition.stop();
+        this.recognition.abort();
       } catch (e) {}
       this.recognition = null;
     }
@@ -113,7 +110,7 @@ export class SpeechService {
     if (!this.isSpeechSynthesisSupported() || !text) return;
 
     try {
-      window.speechSynthesis.cancel(); // Stop ongoing speech
+      window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(text);
       const langMap = {
         en: 'en-IN',

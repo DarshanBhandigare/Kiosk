@@ -218,6 +218,9 @@ export interface QueueItem {
   patient_id_number?: string;
   chief_complaint: string;
   department: string;
+  assigned_doctor_name?: string;
+  assigned_specialty?: string;
+  routing_reason?: string;
   status: string;
   has_red_flag: boolean;
   red_flag_severity?: string;

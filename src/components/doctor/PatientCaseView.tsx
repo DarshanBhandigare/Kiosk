@@ -30,40 +30,19 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   const [activeTab, setActiveTab] = useState<'clinical' | 'timeline' | 'documents' | 'ayurveda'>('clinical');
   const [approvalSuccess, setApprovalSuccess] = useState(false);
   const [approvalError, setApprovalError] = useState('');
-  const [doctors, setDoctors] = useState<Array<{ id: string; full_name: string; department?: string }>>([]);
-  const [doctorLoadError, setDoctorLoadError] = useState('');
-  const [isLoadingDoctors, setIsLoadingDoctors] = useState(false);
-  const [selectedDoctorId, setSelectedDoctorId] = useState('');
-  const [isAssigning, setIsAssigning] = useState(false);
-  const [assignmentMessage, setAssignmentMessage] = useState('');
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState('');
 
   useEffect(() => {
     fetchCase();
-    loadDoctors();
   }, [caseId]);
-
-  const loadDoctors = async () => {
-    setIsLoadingDoctors(true);
-    setDoctorLoadError('');
-    try {
-      setDoctors(await api.getAssignableDoctors());
-    } catch (error) {
-      console.warn('Unable to load doctors:', error);
-      setDoctorLoadError(error instanceof Error ? error.message : 'Unable to load doctors.');
-    } finally {
-      setIsLoadingDoctors(false);
-    }
-  };
 
   const fetchCase = async () => {
     setLoading(true);
     try {
       const data = await api.getCaseDetails(caseId);
       setCaseData(data);
-      setSelectedDoctorId(data.assignment?.doctor_id || '');
     } catch (e) {
       console.warn('Fetch case error, using mock:', e);
       // Use mock data if available, otherwise generate basic from queue item
@@ -137,31 +116,6 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
     }
   };
 
-  const handleAssignDoctor = async () => {
-    if (!caseData || !selectedDoctorId) return;
-    setIsAssigning(true);
-    setAssignmentMessage('');
-    try {
-      const result = await api.assignCaseDoctor(caseData.id, selectedDoctorId);
-      setCaseData({
-        ...caseData,
-        department: result.department,
-        assignment: {
-          doctor_id: result.doctor_id,
-          doctor_name: result.doctor_name,
-          specialty: result.department,
-          routing_reason: result.routing_reason
-        }
-      });
-      setAssignmentMessage(`Assigned to ${result.doctor_name}.`);
-      if (onCaseUpdated) onCaseUpdated();
-    } catch (error) {
-      setAssignmentMessage(error instanceof Error ? error.message : 'Unable to assign doctor.');
-    } finally {
-      setIsAssigning(false);
-    }
-  };
-
   const handleDeleteCase = async () => {
     if (!caseData) return;
     setIsDeleting(true);
@@ -200,7 +154,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
         <p className="text-sm text-slate-600 mb-4">Patient case not found or unavailable.</p>
         <button
           onClick={onBack}
-          className="px-4 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold"
+          className="px-4 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold cursor-pointer"
         >
           Return to Queue
         </button>
@@ -252,7 +206,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
           )}
           <button
             onClick={() => setShowDeleteConfirm(true)}
-            className="p-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50"
+            className="p-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 cursor-pointer"
             title="Delete case"
           >
             <Trash2 className="w-4 h-4" />
@@ -260,44 +214,44 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
         </div>
       </div>
 
-      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
-        <div className="min-w-44">
-          <p className="text-xs font-bold text-slate-800">Doctor Assignment</p>
-          <p className="text-[11px] text-slate-500">{caseData.assignment?.routing_reason || 'No doctor assigned yet.'}</p>
+      {/* Read-Only Doctor Assignment & Triage Stage Info Banner */}
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-9 h-9 rounded-xl bg-teal-100 text-teal-800 flex items-center justify-center font-bold">
+            <Stethoscope className="w-5 h-5" />
+          </div>
+          <div>
+            <div className="flex items-center space-x-2 flex-wrap">
+              <span className="text-xs font-bold text-slate-800">Assigned Physician:</span>
+              <span className="text-xs font-black text-teal-800">
+                {caseData.assignment?.doctor_name || caseData.assigned_doctor_name || 'Unassigned (Pending Triage Desk Allocation)'}
+              </span>
+              <span className="text-[11px] text-slate-500 font-medium">
+                • {caseData.department || caseData.assignment?.specialty || 'General Medicine'}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              {caseData.assignment?.routing_reason || 'Routed via OPD Triage Desk'}
+            </p>
+          </div>
         </div>
-        <select
-          value={selectedDoctorId}
-          onChange={(event) => setSelectedDoctorId(event.target.value)}
-          disabled={isLoadingDoctors || doctors.length === 0}
-          className="flex-1 min-w-52 p-2.5 rounded-xl border border-slate-300 bg-white text-sm"
-        >
-          <option value="">{isLoadingDoctors ? 'Loading doctors...' : doctors.length ? 'Select a doctor' : 'No doctors loaded'}</option>
-          {doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.full_name} — {doctor.department}</option>)}
-        </select>
-        <button onClick={loadDoctors} disabled={isLoadingDoctors} className="px-3 py-2.5 rounded-xl border border-slate-300 bg-white text-xs font-bold disabled:opacity-50">
-          Reload
-        </button>
-        <button
-          onClick={handleAssignDoctor}
-          disabled={!selectedDoctorId || isAssigning}
-          className="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold disabled:opacity-50"
-        >
-          {isAssigning ? 'Assigning...' : 'Assign Doctor'}
-        </button>
-        {caseData.assignment && <span className="text-xs font-semibold text-sky-700">Current: {caseData.assignment.doctor_name}</span>}
+
+        <div className="flex items-center space-x-2">
+          <span className="text-xs text-slate-500 font-medium">Triage Stage:</span>
+          <Badge
+            variant={
+              caseData.status === 'APPROVED' ? 'success' :
+              caseData.status === 'UNDER_REVIEW' ? 'critical' :
+              caseData.status === 'TRIAGED' ? 'info' : 'neutral'
+            }
+            size="sm"
+          >
+            {caseData.status === 'APPROVED' ? 'Verified & Approved' :
+             caseData.status === 'UNDER_REVIEW' ? 'Escalated to Doctor' :
+             caseData.status === 'TRIAGED' ? 'Triaged by Staff' : 'Waiting Triage'}
+          </Badge>
+        </div>
       </div>
-
-      {doctorLoadError && (
-        <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs font-semibold text-amber-800">
-          Could not load live doctors: {doctorLoadError}. Restart the backend, sign in again as a doctor or triage staff member, then click Reload.
-        </div>
-      )}
-
-      {assignmentMessage && (
-        <div className={`rounded-xl border p-3 text-sm font-semibold ${assignmentMessage.startsWith('Assigned') ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
-          {assignmentMessage}
-        </div>
-      )}
 
       {showDeleteConfirm && (
         <div className="rounded-2xl border border-rose-200 bg-rose-50 p-4 flex flex-col sm:flex-row sm:items-center gap-3">

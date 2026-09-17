@@ -69,17 +69,12 @@ export const Step7AIInterview: React.FC<Step7Props> = ({
     }
   };
 
-  const handleToggleVoice = async () => {
+  const handleToggleVoice = () => {
     if (isListening) {
       SpeechService.stopListening();
       setIsListening(false);
     } else {
       setSpeechError('');
-      const microphoneError = await SpeechService.requestMicrophoneAccess();
-      if (microphoneError) {
-        setSpeechError(microphoneError);
-        return;
-      }
       setIsListening(true);
       SpeechService.startListening(
         language,
@@ -89,11 +84,15 @@ export const Step7AIInterview: React.FC<Step7Props> = ({
         },
         (err) => {
           setIsListening(false);
-          setSpeechError(SpeechService.getRecognitionErrorMessage(err));
+          setErrorMsgFallback(err);
         },
         () => setIsListening(false)
       );
     }
+  };
+
+  const setErrorMsgFallback = (err: any) => {
+    setSpeechError(SpeechService.getRecognitionErrorMessage(err));
   };
 
   const handleAnswer = async (responseVal?: string) => {
