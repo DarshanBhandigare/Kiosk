@@ -159,6 +159,25 @@ export const api = {
     return res.json();
   },
 
+  async getAssignableDoctors() {
+    const res = await fetch(`${API_BASE}/cases/doctors`, { headers: { ...getAuthHeader() } });
+    if (!res.ok) throw new Error('Unable to load doctors');
+    return res.json();
+  },
+
+  async assignCaseDoctor(caseId: string, doctorId: string) {
+    const res = await fetch(`${API_BASE}/cases/${caseId}/assign-doctor`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ doctor_id: doctorId })
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Unable to assign doctor');
+    }
+    return res.json();
+  },
+
   async getCaseDetails(caseId: string): Promise<CaseDetails> {
     const res = await fetch(`${API_BASE}/cases/${caseId}`);
     if (!res.ok) throw new Error('Failed to fetch case details');

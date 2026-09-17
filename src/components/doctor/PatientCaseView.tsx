@@ -28,16 +28,30 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   const [activeTab, setActiveTab] = useState<'clinical' | 'timeline' | 'documents' | 'ayurveda'>('clinical');
   const [approvalSuccess, setApprovalSuccess] = useState(false);
   const [approvalError, setApprovalError] = useState('');
+  const [doctors, setDoctors] = useState<Array<{ id: string; full_name: string; department?: string }>>([]);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [isAssigning, setIsAssigning] = useState(false);
+  const [assignmentMessage, setAssignmentMessage] = useState('');
 
   useEffect(() => {
     fetchCase();
+    loadDoctors();
   }, [caseId]);
+
+  const loadDoctors = async () => {
+    try {
+      setDoctors(await api.getAssignableDoctors());
+    } catch (error) {
+      console.warn('Unable to load doctors:', error);
+    }
+  };
 
   const fetchCase = async () => {
     setLoading(true);
     try {
       const data = await api.getCaseDetails(caseId);
       setCaseData(data);
+      setSelectedDoctorId(data.assignment?.doctor_id || '');
     } catch (e) {
       console.warn('Fetch case error, using mock:', e);
       // Use mock data if available, otherwise generate basic from queue item
@@ -111,6 +125,31 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
     }
   };
 
+  const handleAssignDoctor = async () => {
+    if (!caseData || !selectedDoctorId) return;
+    setIsAssigning(true);
+    setAssignmentMessage('');
+    try {
+      const result = await api.assignCaseDoctor(caseData.id, selectedDoctorId);
+      setCaseData({
+        ...caseData,
+        department: result.department,
+        assignment: {
+          doctor_id: result.doctor_id,
+          doctor_name: result.doctor_name,
+          specialty: result.department,
+          routing_reason: result.routing_reason
+        }
+      });
+      setAssignmentMessage(`Assigned to ${result.doctor_name}.`);
+      if (onCaseUpdated) onCaseUpdated();
+    } catch (error) {
+      setAssignmentMessage(error instanceof Error ? error.message : 'Unable to assign doctor.');
+    } finally {
+      setIsAssigning(false);
+    }
+  };
+
   const handleToggleMedVerification = async (medId?: string) => {
     if (!caseData || !medId) return;
     const updatedMeds = caseData.medications.map((m) =>
@@ -148,7 +187,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   return (
     <div className="space-y-6 animate-fadeIn">
       {/* Top Action Bar */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-white p-5 rounded-2xl border border-slate-200 shadow-xs">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-white p-4 rounded-2xl border border-slate-200 shadow-xs">
         <div className="flex items-center space-x-4">
           <button
             onClick={onBack}
@@ -157,12 +196,12 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
             ← Back to Queue
           </button>
           <div className="flex items-center space-x-2">
-            <span className="text-2xl font-black text-slate-900 font-mono">{caseData.token_number}</span>
+            <span className="text-xl font-black text-slate-900 font-mono">{caseData.token_number}</span>
             <span className="text-xs font-semibold text-slate-500">• {caseData.department}</span>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-wrap items-center gap-2">
           {caseData.has_red_flag && (
             <Badge variant="critical" size="md">
               <ShieldAlert className="w-3.5 h-3.5 mr-1 text-rose-600" />
@@ -186,6 +225,35 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
           )}
         </div>
       </div>
+
+      <div className="bg-slate-50 border border-slate-200 rounded-2xl p-3 flex flex-col sm:flex-row sm:items-center gap-3">
+        <div className="min-w-44">
+          <p className="text-xs font-bold text-slate-800">Doctor Assignment</p>
+          <p className="text-[11px] text-slate-500">{caseData.assignment?.routing_reason || 'No doctor assigned yet.'}</p>
+        </div>
+        <select
+          value={selectedDoctorId}
+          onChange={(event) => setSelectedDoctorId(event.target.value)}
+          className="flex-1 min-w-52 p-2.5 rounded-xl border border-slate-300 bg-white text-sm"
+        >
+          <option value="">Select a doctor</option>
+          {doctors.map((doctor) => <option key={doctor.id} value={doctor.id}>{doctor.full_name} — {doctor.department}</option>)}
+        </select>
+        <button
+          onClick={handleAssignDoctor}
+          disabled={!selectedDoctorId || isAssigning}
+          className="px-4 py-2.5 rounded-xl bg-sky-600 text-white text-xs font-bold disabled:opacity-50"
+        >
+          {isAssigning ? 'Assigning...' : 'Assign Doctor'}
+        </button>
+        {caseData.assignment && <span className="text-xs font-semibold text-sky-700">Current: {caseData.assignment.doctor_name}</span>}
+      </div>
+
+      {assignmentMessage && (
+        <div className={`rounded-xl border p-3 text-sm font-semibold ${assignmentMessage.startsWith('Assigned') ? 'border-sky-200 bg-sky-50 text-sky-800' : 'border-rose-200 bg-rose-50 text-rose-700'}`}>
+          {assignmentMessage}
+        </div>
+      )}
 
       {approvalSuccess && (
         <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-3 text-sm font-semibold text-emerald-800">

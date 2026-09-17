@@ -178,6 +178,12 @@ export interface CaseDetails {
   chief_complaint: string;
   hpi_summary?: string;
   department: string;
+  assignment?: {
+    doctor_id: string;
+    doctor_name: string;
+    specialty: string;
+    routing_reason: string;
+  } | null;
   assigned_doctor_name?: string;
   assigned_specialty?: string;
   routing_reason?: string;

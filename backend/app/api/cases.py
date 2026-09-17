@@ -7,9 +7,10 @@ from backend.app.database.session import get_db
 from backend.app.models.models import (
     Case, Patient, CaseSymptom, MedicalHistory, Medication, Allergy,
     FamilyHistory, LifestyleInformation, AyurvedaProfile, Document,
-    MedicalTimelineEvent, RedFlagAlert, DoctorNote, DoctorReview
+    MedicalTimelineEvent, RedFlagAlert, DoctorNote, DoctorReview, CaseAssignment, Role, User
 )
-from backend.app.schemas.schemas import CaseCreate, CaseResponse
+from backend.app.schemas.schemas import CaseCreate, CaseResponse, DoctorAssignmentRequest
+from backend.app.security.auth import require_staff_or_doctor
 from backend.app.services.red_flag_engine import RedFlagEngine
 from backend.app.services.timeline_service import TimelineService
 from backend.app.services.summary_service import SummaryService
@@ -69,6 +70,61 @@ def list_cases(
             "submitted_at": c.submitted_at
         })
     return result
+
+@router.get("/doctors")
+def list_assignable_doctors(
+    current_user: User = Depends(require_staff_or_doctor),
+    db: Session = Depends(get_db),
+):
+    doctors = db.query(User).join(Role).filter(Role.name == "doctor", User.is_active.is_(True)).order_by(User.department, User.full_name).all()
+    return [{"id": doctor.id, "full_name": doctor.full_name, "department": doctor.department} for doctor in doctors]
+
+@router.post("/{case_id}/assign-doctor")
+def assign_case_doctor(
+    case_id: str,
+    assignment_in: DoctorAssignmentRequest,
+    current_user: User = Depends(require_staff_or_doctor),
+    db: Session = Depends(get_db),
+):
+    case = db.query(Case).filter(Case.id == case_id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+    doctor = db.query(User).join(Role).filter(Role.name == "doctor", User.id == assignment_in.doctor_id, User.is_active.is_(True)).first()
+    if not doctor:
+        raise HTTPException(status_code=404, detail="Active doctor not found")
+
+    routing_reason = f"Manually assigned by {current_user.full_name}."
+    if case.assignment:
+        case.assignment.doctor_id = doctor.id
+        case.assignment.specialty = doctor.department or "General Medicine"
+        case.assignment.routing_reason = routing_reason
+    else:
+        db.add(CaseAssignment(
+            case_id=case.id,
+            doctor_id=doctor.id,
+            specialty=doctor.department or "General Medicine",
+            routing_reason=routing_reason,
+        ))
+    case.department = doctor.department or case.department
+    db.commit()
+    db.refresh(case)
+
+    AuditService.log(
+        db=db,
+        action="CASE_DOCTOR_ASSIGNED",
+        resource_type="CASE",
+        resource_id=case.id,
+        user_id=current_user.id,
+        details={"assigned_doctor": doctor.full_name, "assigned_by": current_user.full_name},
+    )
+    return {
+        "status": "SUCCESS",
+        "case_id": case.id,
+        "doctor_id": doctor.id,
+        "doctor_name": doctor.full_name,
+        "department": case.department,
+        "routing_reason": routing_reason,
+    }
 
 @router.post("")
 async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):
@@ -375,6 +431,7 @@ def get_case_details(id: str, db: Session = Depends(get_db)):
         "hpi_summary": case.hpi_summary,
         "department": case.department,
         "assignment": {
+            "doctor_id": case.assignment.doctor_id,
             "doctor_name": case.assignment.doctor.full_name,
             "specialty": case.assignment.specialty,
             "routing_reason": case.assignment.routing_reason

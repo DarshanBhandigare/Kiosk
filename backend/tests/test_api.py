@@ -220,3 +220,20 @@ def test_staff_can_triage_and_escalate_live_cases():
     assert triage_response.json()["case_status"] == "TRIAGED"
     assert escalate_response.status_code == 200
     assert escalate_response.json()["case_status"] == "UNDER_REVIEW"
+
+
+def test_staff_can_manually_assign_case_to_specialist():
+    login_response = client.post("/api/auth/login", data={"username": "staff.priya", "password": "Staff@123"})
+    headers = {"Authorization": f"Bearer {login_response.json()['access_token']}"}
+    doctors = client.get("/api/cases/doctors", headers=headers).json()
+    cardiologist = next(doctor for doctor in doctors if doctor["department"] == "Cardiology")
+    case = client.get("/api/cases").json()[0]
+
+    assign_response = client.post(
+        f"/api/cases/{case['id']}/assign-doctor",
+        headers=headers,
+        json={"doctor_id": cardiologist["id"]},
+    )
+
+    assert assign_response.status_code == 200
+    assert assign_response.json()["doctor_name"] == cardiologist["full_name"]

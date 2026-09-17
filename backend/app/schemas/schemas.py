@@ -193,6 +193,9 @@ class CaseCreate(BaseModel):
     lifestyle: Optional[LifestyleInfoInput] = None
     ayurveda: Optional[AyurvedaProfileInput] = None
 
+class DoctorAssignmentRequest(BaseModel):
+    doctor_id: str
+
 class CaseResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
     id: str
