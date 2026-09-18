@@ -147,7 +147,13 @@ HbA1c: 7.8 % (Normal < 5.7 %)
 Fasting Blood Sugar: 142 mg/dL (HIGH)
 Total Cholesterol: 228 mg/dL (HIGH)
 Serum Triglycerides: 195 mg/dL (HIGH)
-Serum Creatinine: 1.05 mg/dL (Normal)`
+Serum Creatinine: 1.05 mg/dL (Normal)`,
+      extractions: [
+        { entity_type: 'LAB_TEST', extracted_key: 'HbA1c', extracted_value: '7.8 %', is_abnormal: true, reference_range: '< 5.7 %', confidence_score: 0.99 },
+        { entity_type: 'TEST_RESULT', extracted_key: 'Fasting Blood Sugar', extracted_value: '142 mg/dL', is_abnormal: true, reference_range: '70-100 mg/dL', confidence_score: 0.98 },
+        { entity_type: 'TEST_RESULT', extracted_key: 'Total Cholesterol', extracted_value: '228 mg/dL', is_abnormal: true, reference_range: '< 200 mg/dL', confidence_score: 0.97 },
+        { entity_type: 'TEST_RESULT', extracted_key: 'Serum Creatinine', extracted_value: '1.05 mg/dL', is_abnormal: false, reference_range: '0.7-1.3 mg/dL', confidence_score: 0.98 }
+      ]
     },
     {
       title: "Knee Arthroscopy Discharge Summary (Sahyadri Hospital)",
@@ -157,7 +163,13 @@ Admission: 04/11/2025 | Discharge: 06/11/2025
 Doctor: Dr. Sunil Deshmukh, MS (Ortho)
 Final Diagnosis: Right Knee Medial Meniscus Tear
 Procedure: Right Knee Arthroscopic Partial Meniscectomy
-Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`
+Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`,
+      extractions: [
+        { entity_type: 'DIAGNOSIS', extracted_key: 'Final Diagnosis', extracted_value: 'Right Knee Medial Meniscus Tear', confidence_score: 0.98 },
+        { entity_type: 'PROCEDURE', extracted_key: 'Procedure', extracted_value: 'Right Knee Arthroscopic Partial Meniscectomy', confidence_score: 0.97 },
+        { entity_type: 'DOCTOR', extracted_key: 'Attending Doctor', extracted_value: 'Dr. Sunil Deshmukh, MS (Ortho)', confidence_score: 0.99 },
+        { entity_type: 'MEDICINE', extracted_key: 'Discharge Medicine', extracted_value: 'Paracetamol 650 mg three times daily for 5 days', confidence_score: 0.96 }
+      ]
     }
   ];
 

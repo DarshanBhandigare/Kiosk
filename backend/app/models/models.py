@@ -110,7 +110,7 @@ class Case(Base):
     token_number = Column(String(20), unique=True, nullable=False, index=True) # e.g. T-101
     chief_complaint = Column(Text, nullable=False)
     hpi_summary = Column(Text, nullable=True) # History of present illness
-    status = Column(String(30), default="WAITING_REVIEW") # WAITING_REVIEW, TRIAGED, UNDER_REVIEW, APPROVED, COMPLETED
+    status = Column(String(30), default="WAITING_REVIEW") # WAITING_REVIEW, TRIAGED, UNDER_REVIEW, APPROVED, DIAGNOSED, COMPLETED
     department = Column(String(100), default="OPD General")
     has_red_flag = Column(Boolean, default=False)
     red_flag_severity = Column(String(20), nullable=True) # CRITICAL, HIGH, MEDIUM, LOW

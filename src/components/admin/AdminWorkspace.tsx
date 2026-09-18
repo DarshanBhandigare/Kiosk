@@ -19,6 +19,7 @@ const normalizeStats = (data: any) => ({
     total_patients: data?.today?.total_patients ?? data?.total_patients ?? 0,
     waiting: data?.today?.waiting ?? data?.waiting_cases ?? 0,
     under_review: data?.today?.under_review ?? 0,
+    diagnosed: data?.today?.diagnosed ?? 0,
     completed: data?.today?.completed ?? data?.approved_cases ?? 0,
     red_flags_total: data?.today?.red_flags_total ?? data?.red_flag_cases ?? 0,
     red_flags_unacknowledged: data?.today?.red_flags_unacknowledged ?? 0,
@@ -162,6 +163,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
               <StatCard icon={Users} label="Total Patients" value={safeToday.total_patients} sub="OPD today" />
               <StatCard icon={Clock} label="Waiting Review" value={safeToday.waiting} sub="In queue" />
               <StatCard icon={Activity} label="Under Review" value={safeToday.under_review} sub="Active" color="amber" />
+              <StatCard icon={Stethoscope} label="Diagnosed" value={safeToday.diagnosed} sub="Doctor recorded" color="indigo" />
               <StatCard icon={CheckCircle2} label="Completed" value={safeToday.completed} sub="Approved" color="emerald" />
               <StatCard icon={ShieldAlert} label="Red Flags" value={safeToday.red_flags_total} sub="Total today" urgent={true} />
               <StatCard icon={AlertTriangle} label="Unacknowledged" value={safeToday.red_flags_unacknowledged} sub="Need attention" urgent={true} />

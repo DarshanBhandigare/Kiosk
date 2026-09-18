@@ -335,6 +335,24 @@ export const api = {
     return data;
   },
 
+  async markCaseDiagnosed(caseId: string, notes = 'Diagnosis recorded and case marked diagnosed by attending physician.') {
+    const res = await fetch(`${API_BASE}/doctor/cases/${caseId}/diagnose`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        ...getAuthHeader()
+      },
+      body: JSON.stringify({ verification_notes: notes, status: 'DIAGNOSED' })
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Failed to mark case as diagnosed');
+    }
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
+  },
+
   async markCaseTriaged(caseId: string) {
     const res = await fetch(`${API_BASE}/triage/cases/${caseId}/mark-triaged`, {
       method: 'POST',

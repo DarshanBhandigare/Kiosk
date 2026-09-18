@@ -147,3 +147,46 @@ def mark_case_completed(
 
     return {"status": "SUCCESS", "case_id": case.id, "case_status": case.status}
 
+@router.post("/cases/{id}/diagnose")
+def mark_case_diagnosed(
+    id: str,
+    diagnose_in: DoctorApproveRequest,
+    current_user: User = Depends(require_doctor),
+    db: Session = Depends(get_db)
+):
+    case = db.query(Case).filter(Case.id == id).first()
+    if not case:
+        raise HTTPException(status_code=404, detail="Case not found")
+
+    case.status = "DIAGNOSED"
+    case.reviewed_at = datetime.datetime.utcnow()
+    for med in case.medications:
+        med.verified = True
+
+    review = DoctorReview(
+        case_id=case.id,
+        doctor_id=current_user.id,
+        status="DIAGNOSED",
+        verification_notes=diagnose_in.verification_notes
+    )
+    db.add(review)
+    db.commit()
+    db.refresh(case)
+
+    AuditService.log(
+        db=db,
+        action="DOCTOR_CASE_DIAGNOSED",
+        resource_type="CASE",
+        resource_id=case.id,
+        user_id=current_user.id,
+        details={"doctor": current_user.full_name, "status": case.status, "notes": diagnose_in.verification_notes}
+    )
+
+    return {
+        "status": "SUCCESS",
+        "case_id": case.id,
+        "case_status": case.status,
+        "reviewed_at": case.reviewed_at,
+        "doctor_name": current_user.full_name
+    }
+

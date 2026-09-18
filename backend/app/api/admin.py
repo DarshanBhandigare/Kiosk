@@ -149,6 +149,7 @@ def get_system_stats(db: Session = Depends(get_db)):
     red_flag_cases = sum(1 for case in today_cases if case.has_red_flag)
     waiting_cases = sum(1 for case in today_cases if case.status == "WAITING_REVIEW")
     under_review_cases = sum(1 for case in today_cases if case.status == "UNDER_REVIEW")
+    diagnosed_cases = sum(1 for case in today_cases if case.status == "DIAGNOSED")
     total_patients = db.query(Patient).filter(Patient.created_at >= today_start).count()
     unacknowledged_alerts = sum(
         1 for case in today_cases
@@ -174,6 +175,7 @@ def get_system_stats(db: Session = Depends(get_db)):
         "today": {
             "total_patients": total_patients,
             "completed": sum(1 for case in today_cases if case.status == "COMPLETED"),
+            "diagnosed": diagnosed_cases,
             "under_review": under_review_cases,
             "waiting": waiting_cases,
             "red_flags_total": red_flag_cases,

@@ -117,6 +117,17 @@ export interface MedicalDocument {
   extractions: DocumentExtraction[];
 }
 
+export interface VoiceTranscript {
+  id: string;
+  source_language: 'hi' | 'mr';
+  input_mode: 'VOICE' | 'TOUCH';
+  original_text: string;
+  translated_text: string;
+  confidence_score: number;
+  extracted_entities: DocumentExtraction[];
+  captured_at: string;
+}
+
 export interface TimelineEvent {
   id: string;
   event_date: string;
@@ -178,6 +189,7 @@ export interface CaseDetails {
   patient: Patient;
   chief_complaint: string;
   hpi_summary?: string;
+  voice_transcripts?: VoiceTranscript[];
   department: string;
   assignment?: {
     doctor_id: string;
@@ -188,7 +200,7 @@ export interface CaseDetails {
   assigned_doctor_name?: string;
   assigned_specialty?: string;
   routing_reason?: string;
-  status: 'WAITING_REVIEW' | 'TRIAGED' | 'UNDER_REVIEW' | 'APPROVED' | 'COMPLETED';
+  status: 'WAITING_REVIEW' | 'TRIAGED' | 'UNDER_REVIEW' | 'APPROVED' | 'DIAGNOSED' | 'COMPLETED';
   has_red_flag: boolean;
   red_flag_severity?: 'CRITICAL' | 'HIGH' | 'MEDIUM';
   ai_summary?: AISummary;
@@ -222,7 +234,7 @@ export interface QueueItem {
   assigned_doctor_name?: string;
   assigned_specialty?: string;
   routing_reason?: string;
-  status: string;
+  status: 'WAITING_REVIEW' | 'TRIAGED' | 'UNDER_REVIEW' | 'APPROVED' | 'DIAGNOSED' | 'COMPLETED' | string;
   has_red_flag: boolean;
   red_flag_severity?: string;
   created_at: string;

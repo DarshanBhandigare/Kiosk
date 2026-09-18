@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import {
   User, Activity, ShieldAlert, Heart, Pill, AlertTriangle,
-  FileText, Clock, CheckCircle2, AlertCircle, Edit3, Save,
+  FileText, Clock, CheckCircle2, AlertCircle, Edit3, Save, Languages,
   Plus, Stethoscope, Sparkles, Send, Check, Eye, Trash2
 } from 'lucide-react';
 import { CaseDetails } from '../../types';
@@ -27,6 +27,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   const [doctorNoteText, setDoctorNoteText] = useState('');
   const [noteType, setNoteType] = useState('CLINICAL_OBSERVATION');
   const [isApproving, setIsApproving] = useState(false);
+  const [isDiagnosing, setIsDiagnosing] = useState(false);
   const [activeTab, setActiveTab] = useState<'clinical' | 'timeline' | 'documents' | 'ayurveda'>('clinical');
   const [approvalSuccess, setApprovalSuccess] = useState(false);
   const [approvalError, setApprovalError] = useState('');
@@ -116,6 +117,23 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
     }
   };
 
+  const handleMarkDiagnosed = async () => {
+    if (!caseData) return;
+    setIsDiagnosing(true);
+    setApprovalSuccess(false);
+    setApprovalError('');
+    try {
+      const result = await api.markCaseDiagnosed(caseData.id);
+      setCaseData({ ...caseData, status: result.case_status, reviewed_at: result.reviewed_at });
+      setApprovalSuccess(true);
+      onCaseUpdated?.();
+    } catch (error) {
+      setApprovalError(error instanceof Error ? error.message : 'Unable to mark this case as diagnosed.');
+    } finally {
+      setIsDiagnosing(false);
+    }
+  };
+
   const handleDeleteCase = async () => {
     if (!caseData) return;
     setIsDeleting(true);
@@ -164,6 +182,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
 
   const patient = caseData.patient || {};
   const isApproved = caseData.status === 'APPROVED';
+  const isDiagnosed = caseData.status === 'DIAGNOSED';
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -190,11 +209,22 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
             </Badge>
           )}
 
-          <Badge variant={isApproved ? 'success' : 'neutral'} size="md">
-            {isApproved ? 'Doctor Verified & Approved' : 'Waiting Doctor Review'}
+          <Badge variant={isApproved || isDiagnosed ? 'success' : 'neutral'} size="md">
+            {isDiagnosed ? 'Diagnosed & Recorded' : isApproved ? 'Doctor Verified & Approved' : 'Waiting Doctor Review'}
           </Badge>
 
-          {!isApproved && (
+          {!isApproved && !isDiagnosed && (
+            <button
+              onClick={handleMarkDiagnosed}
+              disabled={isDiagnosing || isApproving}
+              className="flex items-center space-x-2 bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-xl text-xs font-bold shadow-sm transition-all cursor-pointer disabled:opacity-50"
+            >
+              <Stethoscope className="w-4 h-4" />
+              <span>{isDiagnosing ? 'Saving Diagnosis...' : 'Mark as Diagnosed'}</span>
+            </button>
+          )}
+
+          {!isApproved && !isDiagnosed && (
             <button
               onClick={handleApproveCase}
               disabled={isApproving}
@@ -240,13 +270,14 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
           <span className="text-xs text-slate-500 font-medium">Triage Stage:</span>
           <Badge
             variant={
-              caseData.status === 'APPROVED' ? 'success' :
+              caseData.status === 'APPROVED' || caseData.status === 'DIAGNOSED' ? 'success' :
               caseData.status === 'UNDER_REVIEW' ? 'critical' :
               caseData.status === 'TRIAGED' ? 'info' : 'neutral'
             }
             size="sm"
           >
-            {caseData.status === 'APPROVED' ? 'Verified & Approved' :
+            {caseData.status === 'DIAGNOSED' ? 'Diagnosed' :
+             caseData.status === 'APPROVED' ? 'Verified & Approved' :
              caseData.status === 'UNDER_REVIEW' ? 'Escalated to Doctor' :
              caseData.status === 'TRIAGED' ? 'Triaged by Staff' : 'Waiting Triage'}
           </Badge>
@@ -378,6 +409,46 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
 
                 <div className="space-y-3 text-xs text-slate-800">
                   <div>
+
+                  {caseData.voice_transcripts && caseData.voice_transcripts.length > 0 && (
+                    <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
+                      <h3 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center space-x-2 mb-4">
+                        <Languages className="w-4 h-4 text-teal-600" />
+                        <span>Patient Voice Translation</span>
+                      </h3>
+                      <div className="space-y-4">
+                        {caseData.voice_transcripts.map((voice) => (
+                          <div key={voice.id} className="rounded-xl border border-teal-200 bg-teal-50/50 p-4 text-xs">
+                            <div className="flex flex-wrap items-center justify-between gap-2 mb-3">
+                              <span className="font-bold text-teal-900">{voice.source_language === 'hi' ? 'Hindi' : 'Marathi'} voice input</span>
+                              <span className="text-[10px] font-bold bg-white text-slate-600 px-2 py-0.5 rounded border border-slate-200">
+                                {Math.round(voice.confidence_score * 100)}% Translation Conf
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 xl:grid-cols-2 gap-3">
+                              <div className="rounded-lg bg-white border border-slate-200 p-3">
+                                <span className="text-[10px] font-bold uppercase text-slate-500 block mb-1">Original ({voice.source_language})</span>
+                                <p className="text-slate-800 leading-relaxed">{voice.original_text}</p>
+                              </div>
+                              <div className="rounded-lg bg-white border border-teal-200 p-3">
+                                <span className="text-[10px] font-bold uppercase text-teal-700 block mb-1">English translation</span>
+                                <p className="text-slate-900 font-semibold leading-relaxed">{voice.translated_text}</p>
+                              </div>
+                            </div>
+                            <div className="mt-3 space-y-2">
+                              <span className="text-[10px] font-bold uppercase text-slate-500 block">Extracted Medical Entities & Confidence</span>
+                              {voice.extracted_entities.map((entity) => (
+                                <div key={entity.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg bg-white border border-slate-200 px-3 py-2">
+                                  <span><strong className="text-slate-900">{entity.extracted_key}:</strong> <span className="text-slate-700">{entity.extracted_value}</span></span>
+                                  <span className="text-[10px] font-bold text-slate-600">{Math.round((entity.confidence_score ?? 0) * 100)}% Conf</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
                     <strong className="font-bold text-slate-900 block mb-1">Chief Complaint & Symptoms:</strong>
                     <ul className="list-disc pl-5 space-y-0.5">
                       {(caseData.ai_summary.patient_reported_symptoms || []).map((s, i) => (

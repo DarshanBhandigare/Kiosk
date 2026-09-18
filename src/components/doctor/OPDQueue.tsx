@@ -43,7 +43,7 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
   onSelectCase,
   onRefresh
 }) => {
-  const [filterTab, setFilterTab] = useState<'MY_CASES' | 'ALL' | 'UNASSIGNED' | 'PRIORITY' | 'WAITING' | 'APPROVED' | 'COMPLETED'>(
+  const [filterTab, setFilterTab] = useState<'MY_CASES' | 'ALL' | 'UNASSIGNED' | 'PRIORITY' | 'WAITING' | 'APPROVED' | 'DIAGNOSED' | 'COMPLETED'>(
     currentDoctorName ? 'MY_CASES' : 'ALL'
   );
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,6 +53,7 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
   const redFlagCount = queue.filter((i) => i.has_red_flag).length;
   const waitingCount = queue.filter((i) => i.status === 'WAITING_REVIEW').length;
   const approvedCount = queue.filter((i) => i.status === 'APPROVED').length;
+  const diagnosedCount = queue.filter((i) => i.status === 'DIAGNOSED').length;
 
   const filteredQueue = queue.filter((item) => {
     // Tab filter
@@ -65,6 +66,7 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
     if (filterTab === 'PRIORITY' && !item.has_red_flag) return false;
     if (filterTab === 'WAITING' && item.status !== 'WAITING_REVIEW') return false;
     if (filterTab === 'APPROVED' && item.status !== 'APPROVED') return false;
+    if (filterTab === 'DIAGNOSED' && item.status !== 'DIAGNOSED') return false;
     if (filterTab === 'COMPLETED' && item.status !== 'COMPLETED') return false;
 
     // Search filter
@@ -119,6 +121,7 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
             { id: 'PRIORITY', label: `🚨 Priority Red-Flag (${redFlagCount})` },
             { id: 'WAITING', label: `Waiting Review (${waitingCount})` },
             { id: 'APPROVED', label: `Approved (${approvedCount})` }
+            ,{ id: 'DIAGNOSED', label: `Diagnosed (${diagnosedCount})` }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -211,6 +214,10 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
                       {item.has_red_flag ? (
                         <Badge variant="critical" size="sm">
                           🚨 Priority ({item.red_flag_severity || 'CRITICAL'})
+                        </Badge>
+                      ) : item.status === 'DIAGNOSED' ? (
+                        <Badge variant="success" size="sm">
+                          ✓ Diagnosed
                         </Badge>
                       ) : item.status === 'APPROVED' ? (
                         <Badge variant="success" size="sm">

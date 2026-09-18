@@ -16,6 +16,7 @@ const statusConfig: Record<string, { label: string; className: string }> = {
   TRIAGED: { label: 'Triaged', className: 'bg-sky-100 text-sky-800' },
   UNDER_REVIEW: { label: 'Escalated to Doctor', className: 'bg-rose-100 text-rose-800' },
   APPROVED: { label: 'Approved', className: 'bg-emerald-100 text-emerald-800' },
+  DIAGNOSED: { label: 'Diagnosed', className: 'bg-indigo-100 text-indigo-800' },
   COMPLETED: { label: 'Completed', className: 'bg-slate-100 text-slate-700' },
 };
 

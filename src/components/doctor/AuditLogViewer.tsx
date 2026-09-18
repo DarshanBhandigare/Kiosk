@@ -43,6 +43,7 @@ export const AuditLogViewer: React.FC = () => {
 
   const getActionBadgeClass = (action: string) => {
     if (action.includes('APPROVED')) return 'bg-emerald-100 text-emerald-800 border-emerald-300';
+    if (action.includes('DIAGNOSED')) return 'bg-indigo-100 text-indigo-800 border-indigo-300';
     if (action.includes('ESCALATED') || action.includes('CRITICAL') || action.includes('ALERT')) return 'bg-rose-100 text-rose-800 border-rose-300';
     if (action.includes('TRIAGED') || action.includes('ASSIGN')) return 'bg-sky-100 text-sky-800 border-sky-300';
     if (action.includes('LOGIN') || action.includes('AUTH')) return 'bg-purple-100 text-purple-800 border-purple-300';

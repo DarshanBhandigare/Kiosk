@@ -329,6 +329,34 @@ export const MOCK_CASE_DETAILS: Record<string, CaseDetails> = {
     },
     chief_complaint: 'Chest tightness and heaviness spreading to left arm with breathlessness',
     hpi_summary: 'Patient presents with 3-hour history of central chest tightness with radiation to the left arm and jaw. Associated with diaphoresis, nausea and mild breathlessness. Pain rated 8/10. No fever. Known hypertensive and smoker (20 pack-years).',
+    voice_transcripts: [
+      {
+        id: 'voice-001',
+        source_language: 'mr',
+        input_mode: 'VOICE',
+        original_text: 'माझ्या छातीत जडपणा आहे आणि डाव्या हातात वेदना होत आहेत, तसेच दम लागत आहे.',
+        translated_text: 'I have heaviness in my chest with pain in my left arm and shortness of breath.',
+        confidence_score: 0.96,
+        extracted_entities: [
+          { id: 'voice-ext-001', entity_type: 'DIAGNOSIS', extracted_key: 'Primary symptom', extracted_value: 'Chest heaviness with left arm pain', confidence_score: 0.96 },
+          { id: 'voice-ext-002', entity_type: 'DIAGNOSIS', extracted_key: 'Associated symptom', extracted_value: 'Shortness of breath', confidence_score: 0.94 }
+        ],
+        captured_at: minsAgo(39)
+      },
+      {
+        id: 'voice-002',
+        source_language: 'hi',
+        input_mode: 'VOICE',
+        original_text: 'दर्द बहुत तेज है और करीब तीन घंटे से हो रहा है।',
+        translated_text: 'The pain is very severe and has been present for about three hours.',
+        confidence_score: 0.98,
+        extracted_entities: [
+          { id: 'voice-ext-003', entity_type: 'TEST_RESULT', extracted_key: 'Pain severity', extracted_value: 'Severe, 8/10', confidence_score: 0.97 },
+          { id: 'voice-ext-004', entity_type: 'DATE', extracted_key: 'Duration', extracted_value: 'Approximately 3 hours', confidence_score: 0.98 }
+        ],
+        captured_at: minsAgo(38)
+      }
+    ],
     department: 'Cardiology',
     status: 'WAITING_REVIEW',
     has_red_flag: true,
@@ -379,6 +407,38 @@ export const MOCK_CASE_DETAILS: Record<string, CaseDetails> = {
           { id: 'ext-003', entity_type: 'MEDICINE', extracted_key: 'Drug', extracted_value: 'Atorvastatin 20mg', confidence_score: 0.94, verified_by_doctor: false },
           { id: 'ext-004', entity_type: 'DOCTOR', extracted_key: 'Prescribing Doctor', extracted_value: 'Dr. S. Iyer, MD (Cardiology)', confidence_score: 0.99, verified_by_doctor: false },
         ],
+      },
+      {
+        id: 'doc-002',
+        document_type: 'LAB_REPORT',
+        file_name: 'Metropolis_Lipid_Diabetes_Report.pdf',
+        file_size_bytes: 198000,
+        mime_type: 'application/pdf',
+        ocr_status: 'COMPLETED',
+        ocr_raw_text: 'METROPOLIS DIAGNOSTIC LAB\nDate: 10-Jan-2026\nHbA1c: 7.8 % (Normal < 5.7 %)\nFasting Blood Sugar: 142 mg/dL (Reference 70-100 mg/dL)\nTotal Cholesterol: 228 mg/dL (Reference < 200 mg/dL)\nSerum Triglycerides: 195 mg/dL (Reference < 150 mg/dL)\nSerum Creatinine: 1.05 mg/dL (Reference 0.7-1.3 mg/dL)',
+        uploaded_at: minsAgo(31),
+        extractions: [
+          { id: 'ext-005', entity_type: 'LAB_TEST', extracted_key: 'HbA1c', extracted_value: '7.8 %', reference_range: '< 5.7 %', is_abnormal: true, confidence_score: 0.99, verified_by_doctor: false },
+          { id: 'ext-006', entity_type: 'TEST_RESULT', extracted_key: 'Fasting Blood Sugar', extracted_value: '142 mg/dL', reference_range: '70-100 mg/dL', is_abnormal: true, confidence_score: 0.98, verified_by_doctor: false },
+          { id: 'ext-007', entity_type: 'TEST_RESULT', extracted_key: 'Total Cholesterol', extracted_value: '228 mg/dL', reference_range: '< 200 mg/dL', is_abnormal: true, confidence_score: 0.97, verified_by_doctor: false },
+          { id: 'ext-008', entity_type: 'TEST_RESULT', extracted_key: 'Serum Creatinine', extracted_value: '1.05 mg/dL', reference_range: '0.7-1.3 mg/dL', is_abnormal: false, confidence_score: 0.98, verified_by_doctor: false }
+        ]
+      },
+      {
+        id: 'doc-003',
+        document_type: 'DISCHARGE_SUMMARY',
+        file_name: 'Sahyadri_Knee_Discharge_Summary.pdf',
+        file_size_bytes: 226000,
+        mime_type: 'application/pdf',
+        ocr_status: 'COMPLETED',
+        ocr_raw_text: 'SAHYADRI HOSPITAL - DISCHARGE SUMMARY\nAdmission: 04-Nov-2025 | Discharge: 06-Nov-2025\nDoctor: Dr. Sunil Deshmukh, MS (Ortho)\nFinal Diagnosis: Right Knee Medial Meniscus Tear\nProcedure: Right Knee Arthroscopic Partial Meniscectomy\nDischarge Rx: Paracetamol 650 mg three times daily for 5 days',
+        uploaded_at: minsAgo(29),
+        extractions: [
+          { id: 'ext-009', entity_type: 'DIAGNOSIS', extracted_key: 'Final Diagnosis', extracted_value: 'Right Knee Medial Meniscus Tear', confidence_score: 0.98, verified_by_doctor: false },
+          { id: 'ext-010', entity_type: 'PROCEDURE', extracted_key: 'Procedure', extracted_value: 'Right Knee Arthroscopic Partial Meniscectomy', confidence_score: 0.97, verified_by_doctor: false },
+          { id: 'ext-011', entity_type: 'DOCTOR', extracted_key: 'Attending Doctor', extracted_value: 'Dr. Sunil Deshmukh, MS (Ortho)', confidence_score: 0.99, verified_by_doctor: false },
+          { id: 'ext-012', entity_type: 'MEDICINE', extracted_key: 'Discharge Medicine', extracted_value: 'Paracetamol 650 mg three times daily for 5 days', confidence_score: 0.96, verified_by_doctor: false }
+        ]
       },
     ],
     timeline: [
