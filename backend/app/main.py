@@ -1,7 +1,7 @@
 import os
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 from backend.app.database.session import Base, engine, SessionLocal
 from backend.app.models.models import *
@@ -72,6 +72,19 @@ def health_check():
         "diagnosis_disabled": True,
         "prescription_disabled": True
     }
+
+# Serve the production Vite build when running the combined Docker image.
+frontend_dist = os.path.join(os.getcwd(), "dist")
+if os.path.isdir(frontend_dist):
+    @app.get("/{full_path:path}", include_in_schema=False)
+    async def serve_frontend(full_path: str):
+        if full_path == "api" or full_path.startswith("api/"):
+            return JSONResponse(status_code=404, content={"detail": "API route not found"})
+
+        requested_file = os.path.join(frontend_dist, full_path)
+        if os.path.isfile(requested_file):
+            return FileResponse(requested_file)
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
 
 if __name__ == "__main__":
     import uvicorn
