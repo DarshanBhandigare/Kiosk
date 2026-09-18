@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: medikiosk-backend
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: medikiosk-db
+          property: connectionString
+      - key: JWT_SECRET_KEY
+        generateValue: true
+      - key: ACCESS_TOKEN_EXPIRE_MINUTES
+        value: "1440"
+      - key: SPEECH_PROVIDER
+        value: mock
+      - key: OCR_PROVIDER
+        value: mock
+      - key: ABDM_SANDBOX_MODE
+        value: "true"
+      - key: HMIS_FHIR_EXPORT
+        value: "true"
+
+databases:
+  - name: medikiosk-db
+    databaseName: medikiosk
+    user: medikiosk_user
