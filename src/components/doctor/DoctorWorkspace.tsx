@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState, useEffect } from 'react';
 import {
   Users, Stethoscope, ShieldAlert, FileText, Shield, Settings,
   LogOut, Lock, RefreshCw
@@ -37,7 +37,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
     if (user && (user.role === 'doctor' || user.role === 'admin')) {
       setCurrentUser(user);
     }
-    // Do NOT auto-login — let the user see the login screen
+    // Do NOT auto-login â€” let the user see the login screen
   }, []);
 
   useEffect(() => {
@@ -72,7 +72,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
   const fetchQueue = async () => {
     setLoadingQueue(true);
     try {
-      const data = await api.getQueue();
+      const data = currentUser?.role === 'doctor' ? await api.getMyAssignedCases() : await api.getQueue();
       setQueue(Array.isArray(data) ? data : []);
     } catch (e) {
       console.warn('Queue fetch fallback to mock data:', e);
@@ -205,7 +205,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
           <div>
             <h1 className="text-lg font-bold text-slate-900">{currentUser.full_name}</h1>
             <p className="text-xs text-slate-500 font-medium">
-              Role: <strong className="text-teal-700 capitalize">{currentUser.role || 'Doctor'}</strong> • Department: OPD Clinical
+              Role: <strong className="text-teal-700 capitalize">{currentUser.role || 'Doctor'}</strong> â€¢ Department: OPD Clinical
             </p>
           </div>
         </div>
@@ -330,3 +330,4 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
     </div>
   );
 };
+

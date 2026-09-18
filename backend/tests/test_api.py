@@ -249,3 +249,39 @@ def test_staff_can_delete_case():
 
     assert delete_response.status_code == 200
     assert client.get(f"/api/cases/{created_case['id']}").status_code == 404
+
+
+def test_admin_can_create_doctor_with_assigned_case_access():
+    admin_login = client.post("/api/auth/login", data={"username": "admin", "password": "Admin@123"})
+    assert admin_login.status_code == 200
+    admin_headers = {"Authorization": f"Bearer {admin_login.json()['access_token']}"}
+
+    username = "dr.triage.test"
+    created = client.post(
+        "/api/admin/users",
+        headers=admin_headers,
+        json={
+            "username": username,
+            "password": "Temporary@123",
+            "full_name": "Dr. Triage Test",
+            "email": "triage.test@example.com",
+            "role_name": "doctor",
+            "department": "Cardiology",
+        },
+    )
+    assert created.status_code == 200
+
+    case_id = client.get("/api/cases").json()[0]["id"]
+    assigned = client.post(
+        f"/api/cases/{case_id}/assign-doctor",
+        headers=admin_headers,
+        json={"doctor_id": created.json()["id"]},
+    )
+    assert assigned.status_code == 200
+
+    doctor_login = client.post("/api/auth/login", data={"username": username, "password": "Temporary@123"})
+    assert doctor_login.status_code == 200
+    doctor_headers = {"Authorization": f"Bearer {doctor_login.json()['access_token']}"}
+    my_cases = client.get("/api/doctor/my-cases", headers=doctor_headers)
+    assert my_cases.status_code == 200
+    assert [case["id"] for case in my_cases.json()] == [case_id]

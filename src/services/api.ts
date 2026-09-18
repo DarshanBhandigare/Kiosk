@@ -357,6 +357,30 @@ export const api = {
     return res.json();
   },
 
+  async getAdminUsers() {
+    const res = await fetch(`${API_BASE}/admin/users`, { headers: { ...getAuthHeader() } });
+    if (!res.ok) throw new Error('Unable to load staff accounts');
+    return res.json();
+  },
+
+  async createDoctor(payload: { username: string; password: string; full_name: string; email?: string; department: string }) {
+    const res = await fetch(`${API_BASE}/admin/users`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
+      body: JSON.stringify({ ...payload, role_name: 'doctor' })
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Unable to create doctor account');
+    }
+    return res.json();
+  },
+
+  async getMyAssignedCases() {
+    const res = await fetch(`${API_BASE}/doctor/my-cases`, { headers: { ...getAuthHeader() } });
+    if (!res.ok) throw new Error('Unable to load assigned patients');
+    return res.json();
+  },
   // Admin & Stats
   async getSystemStats() {
     const res = await fetch(`${API_BASE}/admin/stats`);
@@ -378,4 +402,5 @@ export const api = {
     return res.json();
   }
 };
+
 

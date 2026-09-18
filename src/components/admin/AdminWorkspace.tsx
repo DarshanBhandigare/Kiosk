@@ -1,4 +1,6 @@
-import React, { useState } from 'react';
+﻿import React, { useState } from 'react';
+import { DoctorManagementPanel } from './DoctorManagementPanel';
+import { api } from '../../services/api';
 import {
   Users, Activity, ShieldAlert, FileText, Settings, Clock,
   TrendingUp, Database, CheckCircle2, AlertTriangle, BarChart3,
@@ -56,7 +58,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900">{currentUser.full_name}</h1>
-            <p className="text-xs text-slate-500">Role: <strong className="text-violet-700">Admin</strong> • {currentUser.department}</p>
+            <p className="text-xs text-slate-500">Role: <strong className="text-violet-700">Admin</strong> â€¢ {currentUser.department}</p>
           </div>
         </div>
 
@@ -105,7 +107,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Dept Breakdown */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4">Top Departments — This Week</h3>
+              <h3 className="text-sm font-bold text-slate-700 mb-4">Top Departments â€” This Week</h3>
               <div className="space-y-3">
                 {stats.week.top_departments.map(dept => {
                   const max = stats.week.top_departments[0].count;
@@ -125,7 +127,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
 
             {/* Language & Kiosk Stats */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-              <h3 className="text-sm font-bold text-slate-700 mb-2">Kiosk & Language Stats — Today</h3>
+              <h3 className="text-sm font-bold text-slate-700 mb-2">Kiosk & Language Stats â€” Today</h3>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 flex items-center gap-1.5"><MonitorSmartphone size={12} />Sessions Started</span>
@@ -177,71 +179,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
       )}
 
       {/* USER MANAGEMENT TAB */}
-      {activeTab === 'users' && (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-base font-bold text-slate-800">Clinical Staff Accounts</h2>
-            <span className="text-xs bg-violet-50 text-violet-700 px-3 py-1 rounded-full font-bold border border-violet-200">
-              {Object.keys(DEMO_USERS).length} users
-            </span>
-          </div>
-          <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200">
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Name</th>
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Username</th>
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Role</th>
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Department</th>
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Password (Demo)</th>
-                  <th className="text-left text-[11px] font-bold text-slate-500 uppercase tracking-wide px-4 py-3">Status</th>
-                </tr>
-              </thead>
-              <tbody>
-                {Object.values(DEMO_USERS).map((user: any) => (
-                  <tr key={user.user_id} className="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td className="px-4 py-3">
-                      <div className="flex items-center space-x-2.5">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white text-xs font-bold ${
-                          user.role === 'admin' ? 'bg-violet-600' : user.role === 'doctor' ? 'bg-teal-600' : 'bg-sky-500'
-                        }`}>
-                          {user.avatar_initials}
-                        </div>
-                        <div>
-                          <p className="text-xs font-bold text-slate-900">{user.full_name}</p>
-                          <p className="text-[10px] text-slate-400">{user.email}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <code className="text-xs bg-slate-100 px-2 py-0.5 rounded font-mono text-slate-700">{user.username}</code>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full capitalize ${
-                        user.role === 'admin' ? 'bg-violet-100 text-violet-700' :
-                        user.role === 'doctor' ? 'bg-teal-50 text-teal-700' : 'bg-sky-50 text-sky-700'
-                      }`}>
-                        {user.role}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3 text-xs text-slate-600">{user.department}</td>
-                    <td className="px-4 py-3">
-                      <code className="text-xs bg-amber-50 text-amber-700 px-2 py-0.5 rounded font-mono border border-amber-200">
-                        {DEMO_PASSWORDS[user.username]}
-                      </code>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-[11px] font-bold bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-full border border-emerald-200">
-                        Active
-                      </span>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      )}
+      {activeTab === 'users' && <DoctorManagementPanel />}
 
       {/* RED FLAG RULES TAB */}
       {activeTab === 'rules' && (
@@ -381,7 +319,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
   );
 };
 
-// ─── LOGIN WRAPPER ────────────────────────────────────────────────────────────
+// â”€â”€â”€ LOGIN WRAPPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AdminWorkspaceProps {
   onLogout?: () => void;
@@ -389,32 +327,27 @@ interface AdminWorkspaceProps {
 
 export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parentLogout }) => {
   const [currentUser, setCurrentUser] = useState<any>(() => {
-    const stored = localStorage.getItem('medikiosk_admin_user');
+    const stored = localStorage.getItem('medikiosk_user');
     return stored ? JSON.parse(stored) : null;
   });
-  const [username, setUsername] = useState('admin.meera');
+  const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = (u: string, p: string) => {
+  const handleLogin = async (u: string, p: string) => {
     setLoading(true);
     setError('');
-    setTimeout(() => {
-      const user = DEMO_USERS[u];
-      if (user && DEMO_PASSWORDS[u] === p) {
-        if (user.role !== 'admin') {
-          setError('Access denied: Admin credentials required.');
-          setLoading(false);
-          return;
-        }
-        localStorage.setItem('medikiosk_admin_user', JSON.stringify(user));
-        setCurrentUser(user);
-      } else {
-        setError('Invalid username or password.');
-      }
+    try {
+      const user = await api.login(u, p);
+      if (user.role !== 'admin') throw new Error('Access denied: Admin credentials required.');
+      localStorage.setItem('medikiosk_admin_user', JSON.stringify(user));
+      setCurrentUser(user);
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Invalid username or password.');
+    } finally {
       setLoading(false);
-    }, 400);
+    }
   };
 
   const handleLogout = () => {
@@ -463,11 +396,11 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
             <span className="text-slate-500 font-semibold block mb-2">Demo Admin Account:</span>
             <button
               type="button"
-              onClick={() => { setUsername('admin.meera'); setPassword('Admin@123'); handleLogin('admin.meera', 'Admin@123'); }}
+              onClick={() => { setUsername('admin'); setPassword('Admin@123'); handleLogin('admin', 'Admin@123'); }}
               className="w-full p-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-xl text-left transition-colors"
             >
               <strong className="block text-slate-900">Meera Desai</strong>
-              <span className="text-[10px] text-slate-500">System Administrator • admin.meera / Admin@123</span>
+              <span className="text-[10px] text-slate-500">System Administrator â€¢ admin / Admin@123</span>
             </button>
           </div>
         </div>
@@ -477,3 +410,6 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
 
   return <AdminDashboard currentUser={currentUser} onLogout={handleLogout} />;
 };
+
+
+

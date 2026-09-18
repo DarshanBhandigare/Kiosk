@@ -1,14 +1,39 @@
-import datetime
+﻿import datetime
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from backend.app.database.session import get_db
-from backend.app.models.models import Case, User, DoctorNote, DoctorReview, Medication, CaseSymptom
+from backend.app.models.models import Case, User, DoctorNote, DoctorReview, Medication, CaseSymptom, CaseAssignment
 from backend.app.schemas.schemas import DoctorNoteCreate, DoctorNoteResponse, DoctorApproveRequest
 from backend.app.security.auth import require_doctor, require_staff_or_doctor
 from backend.app.services.audit_service import AuditService
 
 router = APIRouter(prefix="/doctor", tags=["Doctor Workspace"])
 
+@router.get("/my-cases")
+def get_my_assigned_cases(
+    current_user: User = Depends(require_doctor),
+    db: Session = Depends(get_db),
+):
+    cases = db.query(Case).join(CaseAssignment).filter(CaseAssignment.doctor_id == current_user.id).order_by(Case.has_red_flag.desc(), Case.created_at.desc()).all()
+    return [{
+        "id": case.id,
+        "token_number": case.token_number,
+        "patient_id": case.patient_id,
+        "patient_name": case.patient.full_name if case.patient else "Patient",
+        "patient_age": case.patient.age if case.patient else None,
+        "patient_sex": case.patient.sex if case.patient else None,
+        "patient_id_number": case.patient.patient_id_number if case.patient else None,
+        "chief_complaint": case.chief_complaint,
+        "department": case.department,
+        "assigned_doctor_name": current_user.full_name,
+        "assigned_specialty": case.assignment.specialty if case.assignment else current_user.department,
+        "routing_reason": case.assignment.routing_reason if case.assignment else None,
+        "status": case.status,
+        "has_red_flag": case.has_red_flag,
+        "red_flag_severity": case.red_flag_severity,
+        "created_at": case.created_at,
+        "submitted_at": case.submitted_at,
+    } for case in cases]
 @router.post("/cases/{id}/notes", response_model=DoctorNoteResponse)
 def add_doctor_note(
     id: str,
@@ -121,3 +146,4 @@ def mark_case_completed(
     )
 
     return {"status": "SUCCESS", "case_id": case.id, "case_status": case.status}
+
