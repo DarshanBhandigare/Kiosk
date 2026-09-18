@@ -1,0 +1,10 @@
+CITY MULTISPECIALITY HOSPITAL & RESEARCH CENTRE
+Date: 12/01/2026
+Patient: Demo Patient
+Clinical Impression: Chest pain with hypertension risk factors
+Rx:
+1. Tab. Telmisartan 40 mg - 1 tab Once Daily (OD)
+2. Tab. Metformin 500 mg - 1 tab Twice Daily (BD)
+3. Tab. Atorvastatin 20 mg - 1 tab At Bedtime (HS)
+4. Tab. Pantoprazole 40 mg - 1 tab Early morning empty stomach (OD)
+Advice: Seek urgent clinical review for persistent or worsening chest pain.

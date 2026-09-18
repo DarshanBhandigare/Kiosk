@@ -183,6 +183,7 @@ export const api = {
 
   async submitAnswer(payload: {
     session_id: string;
+    chief_complaint?: string;
     question_key: string;
     question_text: string;
     response_text: string;
@@ -423,6 +424,18 @@ export const api = {
     if (!res.ok) {
       const error = await res.json().catch(() => null);
       throw new Error(error?.detail || 'Unable to create doctor account');
+    }
+    return res.json();
+  },
+
+  async removeDoctor(userId: string) {
+    const res = await fetch(`${API_BASE}/admin/users/${userId}`, {
+      method: 'DELETE',
+      headers: { ...getAuthHeader() }
+    });
+    if (!res.ok) {
+      const error = await res.json().catch(() => null);
+      throw new Error(error?.detail || 'Unable to remove doctor account');
     }
     return res.json();
   },

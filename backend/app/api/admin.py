@@ -3,6 +3,7 @@ from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from backend.app.database.session import get_db
 from backend.app.models.models import User, Role, RedFlagRule, AuditLog, Case, Patient, KioskSession, Document
 from backend.app.schemas.schemas import UserCreate, UserResponse, RedFlagRuleCreate, AuditLogResponse
@@ -13,7 +14,7 @@ router = APIRouter(prefix="/admin", tags=["Admin & System Settings"])
 
 @router.get("/users", response_model=List[UserResponse])
 def list_users(current_user: User = Depends(require_admin), db: Session = Depends(get_db)):
-    users = db.query(User).all()
+    users = db.query(User).filter(User.is_active == True).all()
     return [
         {
             "id": u.id,
@@ -43,8 +44,8 @@ def create_user(
         raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist")
 
     new_user = User(
-        username=user_in.username,
-        email=user_in.email,
+        username=user_in.username.strip(),
+        email=user_in.email.strip() or None if user_in.email else None,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role_id=role.id,
@@ -52,7 +53,11 @@ def create_user(
         is_active=True
     )
     db.add(new_user)
-    db.commit()
+    try:
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(status_code=400, detail="A user with this username or email already exists")
     db.refresh(new_user)
 
     AuditService.log(
@@ -73,6 +78,45 @@ def create_user(
         "department": new_user.department,
         "is_active": new_user.is_active,
         "created_at": new_user.created_at
+    }
+
+@router.delete("/users/{user_id}", response_model=UserResponse)
+def remove_user(
+    user_id: str,
+    current_user: User = Depends(require_admin),
+    db: Session = Depends(get_db)
+):
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    if user.id == current_user.id:
+        raise HTTPException(status_code=400, detail="You cannot remove your own administrator account")
+    if not user.role or user.role.name != "doctor":
+        raise HTTPException(status_code=400, detail="Only doctor accounts can be removed here")
+    if not user.is_active:
+        raise HTTPException(status_code=400, detail="Doctor account is already removed")
+
+    user.is_active = False
+    db.commit()
+
+    AuditService.log(
+        db=db,
+        action="USER_REMOVED",
+        resource_type="USER",
+        resource_id=user.id,
+        user_id=current_user.id,
+        details={"username": user.username, "role": user.role.name}
+    )
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "full_name": user.full_name,
+        "email": user.email,
+        "role_name": user.role.name,
+        "department": user.department,
+        "is_active": user.is_active,
+        "created_at": user.created_at
     }
 
 @router.get("/rules")

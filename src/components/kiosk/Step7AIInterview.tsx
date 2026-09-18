@@ -96,6 +96,7 @@ export const Step7AIInterview: React.FC<Step7Props> = ({
   };
 
   const handleAnswer = async (responseVal?: string) => {
+    if (loading) return;
     const val = responseVal || selectedChoice || (currentQuestion?.input_type === 'SLIDER' ? `${severityVal} / 10` : customText);
     if (!val) return;
 
@@ -115,6 +116,7 @@ export const Step7AIInterview: React.FC<Step7Props> = ({
     try {
       const nextQ = await api.submitAnswer({
         session_id: sessionId,
+        chief_complaint: chiefComplaint,
         question_key: answerRecord.question_key,
         question_text: answerRecord.question_text,
         response_text: val,

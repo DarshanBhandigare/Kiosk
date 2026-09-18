@@ -108,6 +108,7 @@ class InterviewQuestionResponse(BaseModel):
 
 class InterviewAnswerRequest(BaseModel):
     session_id: str
+    chief_complaint: Optional[str] = None
     question_key: str
     question_text: str
     response_text: str
