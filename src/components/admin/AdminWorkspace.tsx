@@ -391,8 +391,15 @@ interface AdminWorkspaceProps {
 
 export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parentLogout }) => {
   const [currentUser, setCurrentUser] = useState<any>(() => {
-    const stored = localStorage.getItem('medikiosk_user');
-    return stored ? JSON.parse(stored) : null;
+    const stored = localStorage.getItem('medikiosk_admin_user');
+    if (!stored) return null;
+    try {
+      const user = JSON.parse(stored);
+      return user?.role === 'admin' ? user : null;
+    } catch {
+      localStorage.removeItem('medikiosk_admin_user');
+      return null;
+    }
   });
   const [username, setUsername] = useState('admin');
   const [password, setPassword] = useState('Admin@123');
@@ -404,7 +411,10 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
     setError('');
     try {
       const user = await api.login(u, p);
-      if (user.role !== 'admin') throw new Error('Access denied: Admin credentials required.');
+      if (user.role !== 'admin') {
+        api.logout();
+        throw new Error('Access denied: Admin credentials required.');
+      }
       localStorage.setItem('medikiosk_admin_user', JSON.stringify(user));
       setCurrentUser(user);
     } catch (loginError) {
@@ -415,6 +425,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
   };
 
   const handleLogout = () => {
+    api.logout();
     localStorage.removeItem('medikiosk_admin_user');
     setCurrentUser(null);
     parentLogout?.();
