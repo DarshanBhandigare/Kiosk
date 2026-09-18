@@ -24,6 +24,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
 }) => {
   const [caseData, setCaseData] = useState<CaseDetails | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
   const [doctorNoteText, setDoctorNoteText] = useState('');
   const [noteType, setNoteType] = useState('CLINICAL_OBSERVATION');
   const [isApproving, setIsApproving] = useState(false);
@@ -41,16 +42,26 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
 
   const fetchCase = async () => {
     setLoading(true);
+    setLoadError('');
     try {
       const data = await api.getCaseDetails(caseId);
       setCaseData(data);
     } catch (e) {
       console.warn('Fetch case error, using mock:', e);
+      setLoadError(e instanceof Error ? e.message : 'Unable to load live case details.');
       // Use mock data if available, otherwise generate basic from queue item
       if (MOCK_CASE_DETAILS[caseId]) {
         setCaseData(MOCK_CASE_DETAILS[caseId]);
       } else {
-        const queueItem = MOCK_QUEUE.find(q => q.id === caseId);
+        let queueItem = MOCK_QUEUE.find(q => q.id === caseId);
+        if (!queueItem) {
+          try {
+            const liveQueue = await api.getQueue();
+            queueItem = liveQueue.find((item) => item.id === caseId);
+          } catch (queueError) {
+            console.warn('Unable to load queue fallback:', queueError);
+          }
+        }
         if (queueItem) {
           setCaseData({
             id: queueItem.id,
@@ -169,7 +180,8 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
   if (!caseData) {
     return (
       <div className="bg-white rounded-2xl p-8 border border-slate-200 text-center">
-        <p className="text-sm text-slate-600 mb-4">Patient case not found or unavailable.</p>
+        <p className="text-sm text-slate-600 mb-2">Patient case details are temporarily unavailable.</p>
+        {loadError && <p className="text-xs text-rose-600 mb-4">{loadError}</p>}
         <button
           onClick={onBack}
           className="px-4 py-2 bg-teal-600 text-white rounded-xl text-xs font-bold cursor-pointer"
