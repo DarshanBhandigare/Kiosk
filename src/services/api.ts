@@ -26,11 +26,26 @@ export const api = {
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: formData
     });
-    if (!res.ok) {
-      const err = await res.json();
-      throw new Error(err.detail || 'Login failed');
+    const responseText = await res.text();
+    let responseData: any = null;
+    try {
+      responseData = responseText ? JSON.parse(responseText) : null;
+    } catch {
+      responseData = null;
     }
-    const data = await res.json();
+
+    if (!res.ok) {
+      const fallbackMessage = responseText && !responseText.trim().startsWith('<')
+        ? responseText.trim()
+        : 'Authentication service is unavailable';
+      throw new Error(responseData?.detail || fallbackMessage);
+    }
+
+    if (!responseData) {
+      throw new Error('Authentication service returned an invalid response');
+    }
+
+    const data = responseData;
     localStorage.setItem('medikiosk_token', data.access_token);
     localStorage.setItem('medikiosk_user', JSON.stringify(data));
     return data;

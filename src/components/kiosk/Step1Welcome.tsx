@@ -37,7 +37,7 @@ export const Step1Welcome: React.FC<Step1Props> = ({
         </p>
 
         {/* Feature Highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 pt-5 border-t border-white/15">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 pt-5">
           <div className="flex items-center space-x-3 bg-white/[0.07] rounded-xl p-3 border border-white/10">
             <Languages className="w-5 h-5 text-teal-300 shrink-0" />
             <span className="text-xs font-medium text-teal-100">English, हिंदी, मराठी Voice & Touch</span>

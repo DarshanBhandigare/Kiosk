@@ -179,8 +179,8 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
         return;
       }
       setCurrentUser(user);
-    } catch {
-      setError('Invalid triage staff username or password.');
+    } catch (loginError) {
+      setError(loginError instanceof Error ? loginError.message : 'Unable to sign in to triage.');
     } finally {
       setLoading(false);
     }

@@ -42,16 +42,6 @@
   box-shadow: 0 24px 50px rgba(16, 42, 67, 0.18);
 }
 
-.kiosk-hero::after {
-  content: '';
-  position: absolute;
-  inset: 18px 18px 18px auto;
-  width: 34%;
-  border-left: 1px solid rgba(123, 211, 217, 0.28);
-  border-top: 1px solid rgba(123, 211, 217, 0.28);
-  pointer-events: none;
-}
-
 .login-shell {
   background: rgba(255, 255, 255, 0.64);
   border: 1px solid rgba(203, 219, 216, 0.9);
