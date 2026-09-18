@@ -118,6 +118,16 @@ export class SpeechService {
         mr: 'mr-IN'
       };
       utterance.lang = langMap[language] || 'en-IN';
+      // Attempt to select a native voice for the language
+      const voices = window.speechSynthesis.getVoices() || [];
+      if (voices.length) {
+        const langCode = utterance.lang;
+        // Find voice matching language code (exact or prefix)
+        const voice = voices.find(v => v.lang.startsWith(langCode));
+        if (voice) {
+          utterance.voice = voice;
+        }
+      }
       utterance.rate = 0.92;
       utterance.pitch = 1.0;
       window.speechSynthesis.speak(utterance);
