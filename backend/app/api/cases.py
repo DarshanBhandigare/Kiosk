@@ -289,6 +289,7 @@ async def create_case(case_in: CaseCreate, db: Session = Depends(get_db)):
 
     return {
         "id": new_case.id,
+        "patient_id": new_case.patient_id,
         "token_number": new_case.token_number,
         "status": new_case.status,
         "has_red_flag": new_case.has_red_flag,

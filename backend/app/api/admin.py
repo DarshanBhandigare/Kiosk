@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from backend.app.database.session import get_db
-from backend.app.models.models import User, Role, RedFlagRule, AuditLog, Case, Patient, KioskSession
+from backend.app.models.models import User, Role, RedFlagRule, AuditLog, Case, Patient, KioskSession, Document
 from backend.app.schemas.schemas import UserCreate, UserResponse, RedFlagRuleCreate, AuditLogResponse
 from backend.app.security.auth import require_admin, get_password_hash
 from backend.app.services.audit_service import AuditService
@@ -184,7 +184,7 @@ def get_system_stats(db: Session = Depends(get_db)):
                 KioskSession.started_at >= today_start,
                 KioskSession.status == "COMPLETED"
             ).count(),
-            "documents_scanned": 0,
+            "documents_scanned": db.query(Document).filter(Document.uploaded_at >= today_start).count(),
             "languages": lang_counts,
         },
         "week": {

@@ -681,7 +681,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                             )}
                           </div>
                           <span className="text-[10px] font-bold bg-white text-slate-600 px-2 py-0.5 rounded border border-slate-200">
-                            96% Conf
+                            {Math.round((e.confidence_score ?? 0.96) * 100)}% Conf
                           </span>
                         </div>
                       ))}

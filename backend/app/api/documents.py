@@ -100,6 +100,7 @@ async def upload_document(
     except Exception as err:
         print(f"OCR Extraction error: {err}")
         doc.ocr_status = "FAILED"
+        doc.ocr_raw_text = f"OCR failed: {type(err).__name__}: {err}"
         db.commit()
 
     AuditService.log(

@@ -6,12 +6,13 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: medikiosk-backend
+    env_file:
+      - .env
     ports:
       - "8000:8000"
     environment:
       - DATABASE_URL=postgresql://medikiosk_user:medikiosk_pass@postgres:5432/medikiosk
       - JWT_SECRET_KEY=medikiosk-super-secure-production-secret-2026-key
-      - OCR_PROVIDER=mock
       - SPEECH_PROVIDER=mock
     depends_on:
       - postgres

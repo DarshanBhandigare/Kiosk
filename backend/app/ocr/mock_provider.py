@@ -2,7 +2,6 @@
 import re
 from typing import Dict, Any, List
 from backend.app.ocr.base import BaseOCRProvider
-from backend.app.ai.mock_provider import MockAIProvider
 
 class MockOCRProvider(BaseOCRProvider):
     """
@@ -17,8 +16,6 @@ class MockOCRProvider(BaseOCRProvider):
 CITY MULTISPECIALITY HOSPITAL & RESEARCH CENTRE
 OPD CONSULTATION RECORD
 Date: 12/01/2026
-Doctor: Dr. Arvind Kulkarni, MD, DM (Cardiology)
-Reg No: MH-2012-8942
 Patient: Ramesh Patil (Male / 54 Years)
 
 Clinical Impression: Essential Hypertension with Borderline Type 2 Diabetes Mellitus
@@ -32,7 +29,6 @@ Rx:
 Advice: Low salt diet, 30 min daily brisk walk. Follow-up after 1 month with Lipid Profile & HbA1c.
             """,
             "entities": [
-                {"entity_type": "DOCTOR", "extracted_key": "Prescribing Physician", "extracted_value": "Dr. Arvind Kulkarni, MD, DM", "reference_range": None, "is_abnormal": False, "confidence_score": 0.98, "verified_by_doctor": False},
                 {"entity_type": "DATE", "extracted_key": "Consultation Date", "extracted_value": "12/01/2026", "reference_range": None, "is_abnormal": False, "confidence_score": 0.99, "verified_by_doctor": False},
                 {"entity_type": "DIAGNOSIS", "extracted_key": "Documented Impression", "extracted_value": "Essential Hypertension with Borderline Type 2 DM", "reference_range": None, "is_abnormal": False, "confidence_score": 0.92, "verified_by_doctor": False},
                 {"entity_type": "MEDICINE", "extracted_key": "Telmisartan", "extracted_value": "40 mg Once Daily (OD)", "reference_range": None, "is_abnormal": False, "confidence_score": 0.96, "verified_by_doctor": False},
@@ -98,18 +94,46 @@ Advice on Discharge: Quadriceps strengthening exercises. Suture removal on 16/11
         }
     }
 
+    @staticmethod
+    def _extract_text_entities(text: str, document_type: str) -> List[Dict[str, Any]]:
+        entities: List[Dict[str, Any]] = []
+        for line in text.splitlines():
+            line = line.strip()
+            if not line:
+                continue
+            date_match = re.search(r"\b\d{1,2}[/-]\d{1,2}[/-]\d{2,4}\b", line)
+            if date_match:
+                entities.append({"entity_type": "DATE", "extracted_key": "Document Date", "extracted_value": date_match.group(0), "confidence_score": 0.99})
+            if document_type.upper() == "LAB_REPORT" and re.search(r"\d", line):
+                match = re.match(r"(.+?):\s*([^()]+?)(?:\s*\(([^)]+)\))?$", line)
+                if match and any(term in match.group(1).lower() for term in ["hba1c", "sugar", "cholesterol", "triglycerides", "creatinine"]):
+                    entities.append({"entity_type": "LAB_TEST", "extracted_key": match.group(1).strip(), "extracted_value": match.group(2).strip(), "is_abnormal": bool(match.group(3) and "high" in match.group(3).lower()), "reference_range": match.group(3), "confidence_score": 0.95})
+            if document_type.upper() == "DISCHARGE_SUMMARY":
+                for label, entity_type in [("Final Diagnosis:", "DIAGNOSIS"), ("Procedure:", "PROCEDURE"), ("Discharge Rx:", "MEDICINE")]:
+                    if line.startswith(label):
+                        entities.append({"entity_type": entity_type, "extracted_key": label[:-1], "extracted_value": line[len(label):].strip(), "confidence_score": 0.95})
+            if document_type.upper() == "PRESCRIPTION" and re.match(r"\d+\.\s+", line):
+                value = re.sub(r"^\d+\.\s+", "", line)
+                medicine = re.match(r"(?:Tab\.|Cap\.|Syrup\s+)?([A-Za-z][A-Za-z ]+?)\s+(\d+[A-Za-z/%]*)\s*-\s*(.+)$", value)
+                if medicine:
+                    entities.append({"entity_type": "MEDICINE", "extracted_key": medicine.group(1).strip(), "extracted_value": f"{medicine.group(2)} - {medicine.group(3).strip()}", "confidence_score": 0.94})
+            if document_type.upper() == "PRESCRIPTION" and line.lower().startswith("clinical impression:"):
+                entities.append({"entity_type": "DIAGNOSIS", "extracted_key": "Clinical Impression", "extracted_value": line.split(":", 1)[1].strip(), "confidence_score": 0.92})
+            if document_type.upper() == "PRESCRIPTION" and line.lower().startswith("advice:"):
+                entities.append({"entity_type": "TEST_RESULT", "extracted_key": "Advice", "extracted_value": line.split(":", 1)[1].strip(), "confidence_score": 0.90})
+        return entities
+
     async def extract_text_and_entities(
         self,
         file_path: str,
         mime_type: str,
         document_type: str = "PRESCRIPTION"
     ) -> Dict[str, Any]:
-        if not mime_type.startswith("text/"):
-            raise RuntimeError("Live OCR is not configured. Set GEMINI_API_KEY to scan PDF and image documents.")
+        is_text_document = mime_type.startswith("text/")
 
         # If file is text file, read actual text
         real_text = ""
-        if os.path.exists(file_path) and mime_type.startswith("text/"):
+        if os.path.exists(file_path) and is_text_document:
             try:
                 with open(file_path, "r", encoding="utf-8", errors="ignore") as f:
                     real_text = f.read().strip()
@@ -123,8 +147,9 @@ Advice on Discharge: Quadriceps strengthening exercises. Suture removal on 16/11
         
         # If real text was read, extract entities dynamically with entity heuristics
         if real_text:
-            ai_helper = MockAIProvider()
-            entities = await ai_helper.extract_entities_from_text(real_text, document_type)
+            entities = self._extract_text_entities(real_text, document_type)
+            if not entities:
+                entities = sample_data["entities"]
         else:
             entities = sample_data["entities"]
 

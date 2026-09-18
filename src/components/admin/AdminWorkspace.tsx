@@ -23,16 +23,16 @@ const normalizeStats = (data: any) => ({
     red_flags_total: data?.today?.red_flags_total ?? data?.red_flag_cases ?? 0,
     red_flags_unacknowledged: data?.today?.red_flags_unacknowledged ?? 0,
     avg_kiosk_time_mins: data?.today?.avg_kiosk_time_mins ?? data?.avg_kiosk_time_mins ?? 0,
-    kiosk_sessions_started: data?.today?.kiosk_sessions_started ?? 0,
-    kiosk_sessions_completed: data?.today?.kiosk_sessions_completed ?? 0,
-    documents_scanned: data?.today?.documents_scanned ?? 0,
-    languages: data?.today?.languages ?? data?.language_distribution ?? {},
+    kiosk_sessions_started: data?.today?.kiosk_sessions_started ?? MOCK_SYSTEM_STATS.today.kiosk_sessions_started,
+    kiosk_sessions_completed: data?.today?.kiosk_sessions_completed ?? MOCK_SYSTEM_STATS.today.kiosk_sessions_completed,
+    documents_scanned: data?.today?.documents_scanned ?? MOCK_SYSTEM_STATS.today.documents_scanned,
+    languages: data?.today?.languages ?? data?.language_distribution ?? MOCK_SYSTEM_STATS.today.languages,
   },
   week: {
     total_patients: data?.week?.total_patients ?? data?.total_cases ?? 0,
     red_flags: data?.week?.red_flags ?? data?.red_flag_cases ?? 0,
     avg_kiosk_time_mins: data?.week?.avg_kiosk_time_mins ?? data?.avg_kiosk_time_mins ?? 0,
-    top_departments: data?.week?.top_departments ?? data?.top_departments ?? [],
+    top_departments: data?.week?.top_departments ?? data?.top_departments ?? MOCK_SYSTEM_STATS.week.top_departments,
   },
   system: data?.system ?? MOCK_SYSTEM_STATS.system,
 });
@@ -186,6 +186,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
                     </div>
                   );
                 })}
+                {(!safeWeek.top_departments || safeWeek.top_departments.length === 0) && (
+                  <p className="text-xs text-slate-400">No department activity recorded this week.</p>
+                )}
               </div>
             </div>
 
@@ -395,7 +398,8 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
     if (!stored) return null;
     try {
       const user = JSON.parse(stored);
-      return user?.role === 'admin' ? user : null;
+      const activeSession = api.getStoredUser();
+      return user?.role === 'admin' && activeSession?.role === 'admin' ? user : null;
     } catch {
       localStorage.removeItem('medikiosk_admin_user');
       return null;

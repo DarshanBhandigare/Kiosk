@@ -282,6 +282,8 @@ export const KioskWizard: React.FC<KioskWizardProps> = ({
           onNext={() => setCurrentStep(10)}
           onBack={() => setCurrentStep(8)}
           patientId={patientData.id}
+          patientData={patientData}
+          setPatientData={setPatientData}
           scannedDocuments={scannedDocuments}
           setScannedDocuments={setScannedDocuments}
         />
@@ -327,6 +329,8 @@ export const KioskWizard: React.FC<KioskWizardProps> = ({
       {currentStep === 13 && (
         <Step13Submission
           language={language}
+          patientId={submissionResult?.patient_id || patientData.id || ''}
+          caseId={submissionResult?.id || ''}
           tokenNumber={submissionResult?.token_number || 'T-101'}
           department={submissionResult?.department || 'OPD General'}
           hasRedFlag={Boolean(submissionResult?.has_red_flag)}

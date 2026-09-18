@@ -1,0 +1,9 @@
+GENERAL OPD PRESCRIPTION
+Date: 18/02/2026
+Patient: Demo Patient
+Clinical Impression: Acute migraine-type headache
+Rx:
+1. Tab. Paracetamol 650 mg - 1 tablet after food as needed
+2. Tab. Naproxen 250 mg - 1 tablet twice daily after food for 3 days
+3. Tab. Domperidone 10 mg - 1 tablet before food as needed
+Advice: Rest in a quiet, dark room and maintain hydration.
