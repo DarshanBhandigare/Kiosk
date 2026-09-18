@@ -69,13 +69,13 @@ export const Step2Language: React.FC<Step2Props> = ({
                 onSelectLanguage(l.code);
                 if (voiceGuidance) handlePreviewAudio(l.code, l.greeting);
               }}
-              className={`p-6 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between ${
+                className={`p-4 sm:p-6 rounded-2xl border-2 transition-all cursor-pointer flex items-center justify-between gap-3 ${
                 isSelected
                   ? 'border-teal-600 bg-teal-50/80 shadow-md ring-2 ring-teal-500/20'
                   : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/60'
               }`}
             >
-              <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
                 <div
                   className={`w-12 h-12 rounded-xl flex items-center justify-center font-bold text-lg ${
                     isSelected ? 'bg-teal-600 text-white' : 'bg-slate-100 text-slate-700'
@@ -85,14 +85,14 @@ export const Step2Language: React.FC<Step2Props> = ({
                 </div>
                 <div>
                   <div className="flex items-center space-x-2">
-                    <span className="text-2xl font-extrabold text-slate-900">{l.name}</span>
-                    <span className="text-sm font-semibold text-slate-500">({l.subname})</span>
+                    <span className="text-xl sm:text-2xl font-extrabold text-slate-900">{l.name}</span>
+                    <span className="text-xs sm:text-sm font-semibold text-slate-500">({l.subname})</span>
                   </div>
-                  <p className="text-xs text-slate-600 mt-1">{l.desc}</p>
+                  <p className="text-xs text-slate-600 mt-1 leading-relaxed">{l.desc}</p>
                 </div>
               </div>
 
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-2 sm:space-x-3 shrink-0">
                 <button
                   type="button"
                   onClick={(e) => {

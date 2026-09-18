@@ -87,12 +87,12 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
     <div className="space-y-6">
       {/* Queue Stat Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
+        <div className="queue-stat bg-white p-5 rounded-2xl border border-slate-200 shadow-2xs">
           <span className="text-xs font-bold text-slate-500 uppercase tracking-wider block">Total Patients In OPD</span>
           <div className="text-3xl font-black text-slate-900 mt-1">{queue.length}</div>
         </div>
 
-        <div className="bg-rose-50 p-5 rounded-2xl border border-rose-200 shadow-2xs">
+        <div className="queue-stat bg-rose-50 p-5 rounded-2xl border border-rose-200 shadow-2xs">
           <span className="text-xs font-bold text-rose-700 uppercase tracking-wider block flex items-center space-x-1">
             <ShieldAlert className="w-3.5 h-3.5 text-rose-600" />
             <span>Red-Flag Priority Cases</span>
@@ -100,28 +100,28 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
           <div className="text-3xl font-black text-rose-800 mt-1">{redFlagCount}</div>
         </div>
 
-        <div className="bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-2xs">
+        <div className="queue-stat bg-amber-50 p-5 rounded-2xl border border-amber-200 shadow-2xs">
           <span className="text-xs font-bold text-amber-700 uppercase tracking-wider block">Waiting Doctor Review</span>
           <div className="text-3xl font-black text-amber-800 mt-1">{waitingCount}</div>
         </div>
 
-        <div className="bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-2xs">
+        <div className="queue-stat bg-emerald-50 p-5 rounded-2xl border border-emerald-200 shadow-2xs">
           <span className="text-xs font-bold text-emerald-700 uppercase tracking-wider block">Approved & Consulted</span>
           <div className="text-3xl font-black text-emerald-800 mt-1">{approvedCount}</div>
         </div>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-wrap items-center justify-between gap-4">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="bg-white p-4 sm:p-5 rounded-2xl border border-slate-200 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1 max-w-full">
           {[
             ...(currentDoctorName ? [{ id: 'MY_CASES', label: `👨‍⚕️ Assigned to Me (${myCasesCount})` }] : []),
             { id: 'ALL', label: `All Patients (${queue.length})` },
             { id: 'UNASSIGNED', label: `⏳ Unassigned (${unassignedCount})` },
             { id: 'PRIORITY', label: `🚨 Priority Red-Flag (${redFlagCount})` },
             { id: 'WAITING', label: `Waiting Review (${waitingCount})` },
-            { id: 'APPROVED', label: `Approved (${approvedCount})` }
-            ,{ id: 'DIAGNOSED', label: `Diagnosed (${diagnosedCount})` }
+            { id: 'APPROVED', label: `Approved (${approvedCount})` },
+            { id: 'DIAGNOSED', label: `Diagnosed (${diagnosedCount})` }
           ].map((tab) => (
             <button
               key={tab.id}
@@ -137,15 +137,15 @@ export const OPDQueue: React.FC<OPDQueueProps> = ({
           ))}
         </div>
 
-        <div className="flex items-center space-x-3">
-          <div className="relative">
+        <div className="flex items-center space-x-3 w-full sm:w-auto">
+          <div className="relative flex-1 sm:flex-none">
             <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search by Token, Name, Symptoms..."
-              className="pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 w-64 focus:border-teal-600"
+              className="pl-9 pr-4 py-2 rounded-xl border border-slate-300 text-xs text-slate-900 w-full sm:w-64 focus:border-teal-600"
             />
           </div>
 

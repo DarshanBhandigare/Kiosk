@@ -22,14 +22,14 @@ export const Step1Welcome: React.FC<Step1Props> = ({
   const t = translations[language];
 
   return (
-    <div className="max-w-4xl mx-auto py-6 px-4">
+    <div className="max-w-5xl mx-auto py-8 px-4 sm:px-6">
       {/* Hospital Banner */}
-      <div className="bg-gradient-to-br from-teal-700 via-teal-800 to-slate-900 rounded-3xl p-8 sm:p-12 text-white shadow-xl mb-8 relative overflow-hidden">
-        <div className="absolute right-0 top-0 translate-x-12 -translate-y-12 w-64 h-64 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="kiosk-hero rounded-[2rem] p-7 sm:p-11 text-white mb-7 relative overflow-hidden">
+        <div className="relative z-10 max-w-3xl">
         
         <div className="mb-6">
-          <span className="text-xs font-semibold tracking-wider uppercase text-teal-200 block mb-1">District General Hospital OPD</span>
-          <h1 className="text-2xl sm:text-4xl font-extrabold tracking-tight">{t.welcomeTitle}</h1>
+          <span className="text-[11px] font-bold tracking-[0.18em] uppercase text-cyan-200 block mb-3">District General Hospital / OPD Intake</span>
+          <h1 className="display-heading text-3xl sm:text-5xl font-extrabold leading-tight">{t.welcomeTitle}</h1>
         </div>
 
         <p className="text-base sm:text-xl text-teal-100/90 font-normal max-w-2xl leading-relaxed mb-8">
@@ -37,16 +37,16 @@ export const Step1Welcome: React.FC<Step1Props> = ({
         </p>
 
         {/* Feature Highlights */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8 pt-4 border-t border-teal-600/50">
-          <div className="flex items-center space-x-3 bg-white/5 rounded-xl p-3 border border-white/10">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-8 pt-5 border-t border-white/15">
+          <div className="flex items-center space-x-3 bg-white/[0.07] rounded-xl p-3 border border-white/10">
             <Languages className="w-5 h-5 text-teal-300 shrink-0" />
             <span className="text-xs font-medium text-teal-100">English, हिंदी, मराठी Voice & Touch</span>
           </div>
-          <div className="flex items-center space-x-3 bg-white/5 rounded-xl p-3 border border-white/10">
+          <div className="flex items-center space-x-3 bg-white/[0.07] rounded-xl p-3 border border-white/10">
             <HeartPulse className="w-5 h-5 text-teal-300 shrink-0" />
             <span className="text-xs font-medium text-teal-100">AI Adaptive History & Prescription OCR</span>
           </div>
-          <div className="flex items-center space-x-3 bg-white/5 rounded-xl p-3 border border-white/10">
+          <div className="flex items-center space-x-3 bg-white/[0.07] rounded-xl p-3 border border-white/10">
             <ShieldCheck className="w-5 h-5 text-teal-300 shrink-0" />
             <span className="text-xs font-medium text-teal-100">Doctor-Verified & ABDM/ABHA Ready</span>
           </div>
@@ -82,11 +82,18 @@ export const Step1Welcome: React.FC<Step1Props> = ({
             <span>Quick Demo Prefill</span>
           </button>
         </div>
+        </div>
       </div>
 
       {/* Language Quick Selector Chips */}
-      <div className="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm">
-        <h3 className="text-sm font-semibold text-slate-700 mb-4">{t.languageSelectTitle}</h3>
+      <div className="bg-white/90 rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-sm">
+        <div className="flex items-end justify-between gap-4 mb-4">
+          <div>
+            <span className="text-[10px] font-bold uppercase tracking-[0.16em] text-teal-700">Choose your language</span>
+            <h3 className="display-heading text-lg font-bold text-slate-900 mt-1">{t.languageSelectTitle}</h3>
+          </div>
+          <span className="hidden sm:block text-xs text-slate-500">Voice and touch support available</span>
+        </div>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           <button
             onClick={() => onSelectLanguage('en')}

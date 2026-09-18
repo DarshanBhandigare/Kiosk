@@ -112,13 +112,14 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
 
   if (!currentUser) {
     return (
-      <div className="max-w-md mx-auto py-12 px-4">
-        <div className="bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center">
-          <div className="w-14 h-14 rounded-2xl bg-teal-50 text-teal-700 flex items-center justify-center mx-auto mb-4 border border-teal-200">
+      <div className="login-shell min-h-[calc(100vh-8rem)] flex items-center justify-center py-10 px-4">
+        <div className="login-card bg-white/95 w-full max-w-md p-7 sm:p-9 rounded-[1.75rem] border border-slate-200 text-center">
+          <div className="w-12 h-12 rounded-2xl bg-teal-700 text-white flex items-center justify-center mx-auto mb-5 shadow-lg shadow-teal-900/15">
             <Lock className="w-7 h-7" />
           </div>
-          <h2 className="text-2xl font-black text-slate-900 mb-1">Clinical Staff Login</h2>
-          <p className="text-xs text-slate-500 mb-6">Doctor, Triage Nurse, or Hospital Administrator access</p>
+          <span className="text-[10px] font-bold uppercase tracking-[0.18em] text-teal-700">Secure clinical workspace</span>
+          <h2 className="display-heading text-2xl font-extrabold text-slate-900 mt-2 mb-1">Clinical Staff Login</h2>
+          <p className="text-xs text-slate-500 mb-7">Review patient intake, triage signals, and physician-ready summaries.</p>
 
           <form
             onSubmit={(e) => {
@@ -152,7 +153,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
             <button
               type="submit"
               disabled={isLoggingIn}
-              className="w-full py-3.5 bg-teal-600 hover:bg-teal-700 text-white rounded-xl font-bold text-xs shadow-md cursor-pointer disabled:opacity-50"
+              className="w-full py-3.5 bg-teal-700 hover:bg-teal-800 text-white rounded-xl font-bold text-xs shadow-md shadow-teal-900/15 cursor-pointer disabled:opacity-50"
             >
               {isLoggingIn ? 'Logging in...' : 'Sign In to Clinical Workspace'}
             </button>
@@ -197,13 +198,13 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       {/* Workspace Sub-Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-4 border-b border-slate-200">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6 pb-5 border-b border-slate-200/80">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 rounded-xl bg-teal-600 text-white flex items-center justify-center font-bold">
             <Stethoscope className="w-5 h-5" />
           </div>
           <div>
-            <h1 className="text-lg font-bold text-slate-900">{currentUser.full_name}</h1>
+            <h1 className="display-heading text-lg font-extrabold text-slate-900">{currentUser.full_name}</h1>
             <p className="text-xs text-slate-500 font-medium">
               Role: <strong className="text-teal-700 capitalize">{currentUser.role || 'Doctor'}</strong> â€¢ Department: OPD Clinical
             </p>
