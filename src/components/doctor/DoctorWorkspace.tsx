@@ -206,7 +206,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
           <div>
             <h1 className="display-heading text-lg font-extrabold text-slate-900">{currentUser.full_name}</h1>
             <p className="text-xs text-slate-500 font-medium">
-              Role: <strong className="text-teal-700 capitalize">{currentUser.role || 'Doctor'}</strong> â€¢ Department: OPD Clinical
+              Role: <strong className="text-teal-700 capitalize">{currentUser.role || 'Doctor'}</strong> Department: OPD Clinical
             </p>
           </div>
         </div>

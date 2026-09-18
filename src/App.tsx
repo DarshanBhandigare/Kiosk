@@ -55,7 +55,7 @@ export function App() {
         <div className="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2">
           <div className="flex items-center space-x-2 text-slate-700 font-semibold">
             <HeartPulse className="w-4 h-4 text-teal-600" />
-            <span>MediKiosk • Code Titans</span>
+            <span>MediKiosk Code Titans</span>
           </div>
 
           <p className="text-[11px] text-slate-500 max-w-2xl">
@@ -64,7 +64,7 @@ export function App() {
 
           <div className="flex items-center space-x-1 text-[11px] text-teal-800 font-medium">
             <ShieldCheck className="w-3.5 h-3.5 text-teal-600" />
-            <span>ABDM Ready • HIPAA / DISHA Compliant</span>
+            <span>ABDM Ready HIPAA / DISHA Compliant</span>
           </div>
         </div>
       </footer>
