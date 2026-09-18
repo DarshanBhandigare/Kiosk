@@ -8,6 +8,12 @@ function getAuthHeader(): Record<string, string> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+function notifyQueueUpdated() {
+  if (typeof window !== 'undefined') {
+    window.dispatchEvent(new CustomEvent('medikiosk_queue_updated'));
+  }
+}
+
 export const api = {
   // Auth
   async login(username: string, password: string) {
@@ -216,7 +222,9 @@ export const api = {
       const error = await res.json().catch(() => null);
       throw new Error(error?.detail || 'Case submission failed');
     }
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   async getQueue(filters?: { status?: string; has_red_flag?: boolean; department?: string }): Promise<QueueItem[]> {
@@ -248,7 +256,9 @@ export const api = {
       const error = await res.json().catch(() => null);
       throw new Error(error?.detail || 'Unable to assign doctor');
     }
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   async getCaseDetails(caseId: string): Promise<CaseDetails> {
@@ -302,7 +312,9 @@ export const api = {
       body: JSON.stringify({ content, note_type: noteType })
     });
     if (!res.ok) throw new Error('Failed to add doctor note');
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   async approveCase(caseId: string, notes = 'Case history reviewed and approved.') {
@@ -318,7 +330,9 @@ export const api = {
       const error = await res.json().catch(() => null);
       throw new Error(error?.detail || 'Failed to approve case');
     }
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   async markCaseTriaged(caseId: string) {
@@ -327,7 +341,9 @@ export const api = {
       headers: { ...getAuthHeader() }
     });
     if (!res.ok) throw new Error('Unable to mark this case as triaged');
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   async escalateCaseToDoctor(caseId: string) {
@@ -336,7 +352,9 @@ export const api = {
       headers: { ...getAuthHeader() }
     });
     if (!res.ok) throw new Error('Unable to escalate this case to the doctor');
-    return res.json();
+    const data = await res.json();
+    notifyQueueUpdated();
+    return data;
   },
 
   // Alerts

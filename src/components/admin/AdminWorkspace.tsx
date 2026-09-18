@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { DoctorManagementPanel } from './DoctorManagementPanel';
 import { api } from '../../services/api';
 import {
@@ -14,9 +14,57 @@ interface AdminDashboardProps {
   onLogout: () => void;
 }
 
+const normalizeStats = (data: any) => ({
+  today: {
+    total_patients: data?.today?.total_patients ?? data?.total_patients ?? 0,
+    waiting: data?.today?.waiting ?? data?.waiting_cases ?? 0,
+    under_review: data?.today?.under_review ?? 0,
+    completed: data?.today?.completed ?? data?.approved_cases ?? 0,
+    red_flags_total: data?.today?.red_flags_total ?? data?.red_flag_cases ?? 0,
+    red_flags_unacknowledged: data?.today?.red_flags_unacknowledged ?? 0,
+    avg_kiosk_time_mins: data?.today?.avg_kiosk_time_mins ?? data?.avg_kiosk_time_mins ?? 0,
+    kiosk_sessions_started: data?.today?.kiosk_sessions_started ?? 0,
+    kiosk_sessions_completed: data?.today?.kiosk_sessions_completed ?? 0,
+    documents_scanned: data?.today?.documents_scanned ?? 0,
+    languages: data?.today?.languages ?? data?.language_distribution ?? {},
+  },
+  week: {
+    total_patients: data?.week?.total_patients ?? data?.total_cases ?? 0,
+    red_flags: data?.week?.red_flags ?? data?.red_flag_cases ?? 0,
+    avg_kiosk_time_mins: data?.week?.avg_kiosk_time_mins ?? data?.avg_kiosk_time_mins ?? 0,
+    top_departments: data?.week?.top_departments ?? data?.top_departments ?? [],
+  },
+  system: data?.system ?? MOCK_SYSTEM_STATS.system,
+});
+
 const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }) => {
   const [activeTab, setActiveTab] = useState<'overview' | 'users' | 'rules' | 'audit' | 'system'>('overview');
-  const stats = MOCK_SYSTEM_STATS;
+  const [stats, setStats] = useState<any>(MOCK_SYSTEM_STATS);
+  const [statsLoading, setStatsLoading] = useState<boolean>(false);
+  const [statsError, setStatsError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchStats = async () => {
+      setStatsLoading(true);
+      setStatsError(null);
+      try {
+        const data = await api.getSystemStats();
+        setStats(normalizeStats(data));
+      } catch (err) {
+        setStatsError(err instanceof Error ? err.message : 'Failed to load system stats');
+        // keep mock as fallback; stats already initialized with mock
+      } finally {
+        setStatsLoading(false);
+      }
+    };
+    fetchStats();
+
+    const handleQueueUpdated = () => {
+      fetchStats();
+    };
+    window.addEventListener('medikiosk_queue_updated', handleQueueUpdated);
+    return () => window.removeEventListener('medikiosk_queue_updated', handleQueueUpdated);
+  }, []);
 
   const StatCard = ({ icon: Icon, label, value, sub, color = 'teal', urgent = false }: any) => (
     <div className={`bg-white rounded-2xl border ${urgent ? 'border-rose-200 shadow-rose-100' : 'border-slate-200'} p-5 shadow-sm`}>
@@ -48,6 +96,11 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
     { key: 'system', label: 'System Status', icon: Server },
   ] as const;
 
+  // Safe defaults for stats when null/loading
+  const safeToday = stats?.today ?? {};
+  const safeWeek = stats?.week ?? {};
+  const safeSystem = stats?.system ?? {};
+
   return (
     <div className="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
       {/* Admin Sub-Header */}
@@ -58,7 +111,7 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
           </div>
           <div>
             <h1 className="text-lg font-bold text-slate-900">{currentUser.full_name}</h1>
-            <p className="text-xs text-slate-500">Role: <strong className="text-violet-700">Admin</strong> â€¢ {currentUser.department}</p>
+            <p className="text-xs text-slate-500">Role: <strong className="text-violet-700">Admin</strong> - {currentUser.department}</p>
           </div>
         </div>
 
@@ -93,24 +146,35 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
       {activeTab === 'overview' && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-base font-bold text-slate-800 mb-3">Today's Summary</h2>
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-base font-bold text-slate-800">Today's Summary</h2>
+              <button
+                type="button"
+                onClick={() => window.dispatchEvent(new CustomEvent('medikiosk_queue_updated'))}
+                disabled={statsLoading}
+                title="Refresh analytics"
+                className="p-2 rounded-lg border border-slate-200 bg-white text-slate-600 hover:bg-slate-50 disabled:opacity-50"
+              >
+                <RefreshCw size={14} className={statsLoading ? 'animate-spin' : ''} />
+              </button>
+            </div>
             <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
-              <StatCard icon={Users} label="Total Patients" value={stats.today.total_patients} sub="OPD today" />
-              <StatCard icon={Clock} label="Waiting Review" value={stats.today.waiting} sub="In queue" />
-              <StatCard icon={Activity} label="Under Review" value={stats.today.under_review} sub="Active" color="amber" />
-              <StatCard icon={CheckCircle2} label="Completed" value={stats.today.completed} sub="Approved" color="emerald" />
-              <StatCard icon={ShieldAlert} label="Red Flags" value={stats.today.red_flags_total} sub="Total today" urgent={true} />
-              <StatCard icon={AlertTriangle} label="Unacknowledged" value={stats.today.red_flags_unacknowledged} sub="Need attention" urgent={true} />
+              <StatCard icon={Users} label="Total Patients" value={safeToday.total_patients} sub="OPD today" />
+              <StatCard icon={Clock} label="Waiting Review" value={safeToday.waiting} sub="In queue" />
+              <StatCard icon={Activity} label="Under Review" value={safeToday.under_review} sub="Active" color="amber" />
+              <StatCard icon={CheckCircle2} label="Completed" value={safeToday.completed} sub="Approved" color="emerald" />
+              <StatCard icon={ShieldAlert} label="Red Flags" value={safeToday.red_flags_total} sub="Total today" urgent={true} />
+              <StatCard icon={AlertTriangle} label="Unacknowledged" value={safeToday.red_flags_unacknowledged} sub="Need attention" urgent={true} />
             </div>
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Dept Breakdown */}
             <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5">
-              <h3 className="text-sm font-bold text-slate-700 mb-4">Top Departments â€” This Week</h3>
+              <h3 className="text-sm font-bold text-slate-700 mb-4">Top Departments - This Week</h3>
               <div className="space-y-3">
-                {stats.week.top_departments.map(dept => {
-                  const max = stats.week.top_departments[0].count;
+                {safeWeek.top_departments?.map((dept: any) => {
+                  const max = safeWeek.top_departments[0]?.count || 1;
                   const pct = Math.round((dept.count / max) * 100);
                   return (
                     <div key={dept.name} className="flex items-center space-x-3">
@@ -127,31 +191,31 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
 
             {/* Language & Kiosk Stats */}
             <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-4">
-              <h3 className="text-sm font-bold text-slate-700 mb-2">Kiosk & Language Stats â€” Today</h3>
+              <h3 className="text-sm font-bold text-slate-700 mb-2">Kiosk & Language Stats - Today</h3>
               <div className="space-y-2 text-xs">
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 flex items-center gap-1.5"><MonitorSmartphone size={12} />Sessions Started</span>
-                  <strong>{stats.today.kiosk_sessions_started}</strong>
+                  <strong>{safeToday.kiosk_sessions_started}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500">Sessions Completed</span>
-                  <strong className="text-teal-700">{stats.today.kiosk_sessions_completed}</strong>
+                  <strong className="text-teal-700">{safeToday.kiosk_sessions_completed}</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500 flex items-center gap-1.5"><Clock size={12} />Avg Kiosk Time</span>
-                  <strong>{stats.today.avg_kiosk_time_mins} min</strong>
+                  <strong>{safeToday.avg_kiosk_time_mins} min</strong>
                 </div>
                 <div className="flex justify-between py-1.5 border-b border-slate-100">
                   <span className="text-slate-500">Documents Scanned</span>
-                  <strong>{stats.today.documents_scanned}</strong>
+                  <strong>{safeToday.documents_scanned}</strong>
                 </div>
               </div>
               <div>
                 <p className="text-xs font-bold text-slate-500 mb-2 flex items-center gap-1"><Languages size={12} />Languages Used</p>
                 <div className="grid grid-cols-3 gap-2">
-                  {Object.entries(stats.today.languages).map(([lang, count]) => (
+                  {Object.entries((safeToday.languages ?? {}) as Record<string, number>).map(([lang, count]) => (
                     <div key={lang} className="bg-teal-50 rounded-lg p-2 text-center">
-                      <p className="text-lg font-black text-teal-700">{count}</p>
+                      <p className="text-lg font-black text-teal-700">{Number(count)}</p>
                       <p className="text-[10px] text-teal-600 uppercase font-bold">{lang === 'en' ? 'English' : lang === 'hi' ? 'Hindi' : 'Marathi'}</p>
                     </div>
                   ))}
@@ -163,15 +227,15 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
           {/* Weekly Summary Metrics */}
           <div className="grid grid-cols-3 gap-4">
             <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">
-              <p className="text-2xl font-black text-slate-900">{stats.week.total_patients}</p>
+              <p className="text-2xl font-black text-slate-900">{safeWeek.total_patients}</p>
               <p className="text-xs text-slate-500 mt-1">Patients This Week</p>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">
-              <p className="text-2xl font-black text-rose-700">{stats.week.red_flags}</p>
+              <p className="text-2xl font-black text-rose-700">{safeWeek.red_flags}</p>
               <p className="text-xs text-slate-500 mt-1">Red Flags This Week</p>
             </div>
             <div className="bg-white rounded-2xl border border-slate-200 p-4 text-center">
-              <p className="text-2xl font-black text-teal-700">{stats.week.avg_kiosk_time_mins} min</p>
+              <p className="text-2xl font-black text-teal-700">{safeWeek.avg_kiosk_time_mins} min</p>
               <p className="text-xs text-slate-500 mt-1">Avg Kiosk Time (Week)</p>
             </div>
           </div>
@@ -269,12 +333,12 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
             <div className="bg-white rounded-2xl border border-slate-200 p-5 space-y-3">
               <h3 className="text-sm font-bold text-slate-700">Application Info</h3>
               {[
-                ['Version', stats.system.version],
-                ['AI Provider', stats.system.ai_provider],
-                ['OCR Engine', stats.system.ocr_provider],
-                ['System Uptime', stats.system.uptime],
-                ['DB Size', `${stats.system.db_size_mb} MB`],
-                ['Last Backup', new Date(stats.system.last_backup).toLocaleDateString('en-IN')],
+                ['Version', safeSystem.version],
+                ['AI Provider', safeSystem.ai_provider],
+                ['OCR Engine', safeSystem.ocr_provider],
+                ['System Uptime', safeSystem.uptime],
+                ['DB Size', `${safeSystem.db_size_mb} MB`],
+                ['Last Backup', new Date(safeSystem.last_backup).toLocaleDateString('en-IN')],
               ].map(([label, value]) => (
                 <div key={label} className="flex justify-between items-center py-1.5 border-b border-slate-100 last:border-0">
                   <span className="text-xs text-slate-500">{label}</span>
@@ -317,9 +381,9 @@ const AdminDashboard: React.FC<AdminDashboardProps> = ({ currentUser, onLogout }
       )}
     </div>
   );
-};
+}
 
-// â”€â”€â”€ LOGIN WRAPPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// â”€â”€â”€ LOGIN WRAPPER â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 interface AdminWorkspaceProps {
   onLogout?: () => void;
@@ -400,7 +464,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
               className="w-full p-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-xl text-left transition-colors"
             >
               <strong className="block text-slate-900">Meera Desai</strong>
-              <span className="text-[10px] text-slate-500">System Administrator â€¢ admin / Admin@123</span>
+              <span className="text-[10px] text-slate-500">System Administrator - admin / Admin@123</span>
             </button>
           </div>
         </div>
@@ -409,7 +473,4 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
   }
 
   return <AdminDashboard currentUser={currentUser} onLogout={handleLogout} />;
-};
-
-
-
+}
