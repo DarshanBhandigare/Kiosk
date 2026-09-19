@@ -9,6 +9,24 @@ import { Badge } from '../common/Badge';
 import { api } from '../../services/api';
 import { MOCK_CASE_DETAILS, MOCK_QUEUE } from '../../data/mockData';
 
+const formatSummaryItem = (item: unknown): string => {
+  if (typeof item === 'string') return item;
+  if (!item || typeof item !== 'object') return String(item ?? 'Not specified');
+
+  const value = item as Record<string, unknown>;
+  if (value.symptom) {
+    const details = [value.duration, value.severity ? `Severity ${value.severity}/10` : null, value.notes]
+      .filter(Boolean)
+      .join(', ');
+    return details ? `${value.symptom}: ${details}` : String(value.symptom);
+  }
+
+  return Object.entries(value)
+    .filter(([, entry]) => entry !== null && entry !== undefined && entry !== '')
+    .map(([key, entry]) => `${key}: ${String(entry)}`)
+    .join(', ');
+};
+
 interface PatientCaseViewProps {
   caseId: string;
   onBack: () => void;
@@ -464,7 +482,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                     <strong className="font-bold text-slate-900 block mb-1">Chief Complaint & Symptoms:</strong>
                     <ul className="list-disc pl-5 space-y-0.5">
                       {(caseData.ai_summary.patient_reported_symptoms || []).map((s, i) => (
-                        <li key={i}>{s}</li>
+                        <li key={i}>{formatSummaryItem(s)}</li>
                       ))}
                     </ul>
                   </div>
@@ -473,7 +491,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                     <strong className="font-bold text-slate-900 block mb-1">Relevant Medical History:</strong>
                     <ul className="list-disc pl-5 space-y-0.5">
                       {(caseData.ai_summary.past_medical_history || []).map((h, i) => (
-                        <li key={i}>{h}</li>
+                        <li key={i}>{formatSummaryItem(h)}</li>
                       ))}
                     </ul>
                   </div>
@@ -482,7 +500,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                     <strong className="font-bold text-slate-900 block mb-1">Current Active Medications:</strong>
                     <ul className="list-disc pl-5 space-y-0.5">
                       {(caseData.ai_summary.current_medications || []).map((m, i) => (
-                        <li key={i}>{m}</li>
+                        <li key={i}>{formatSummaryItem(m)}</li>
                       ))}
                     </ul>
                   </div>
@@ -492,7 +510,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                       <strong className="font-bold text-slate-900 block mb-1">Document Extracted Findings:</strong>
                       <ul className="list-disc pl-5 space-y-0.5">
                         {caseData.ai_summary.document_extracted_findings.map((d, i) => (
-                          <li key={i}>{d}</li>
+                          <li key={i}>{formatSummaryItem(d)}</li>
                         ))}
                       </ul>
                     </div>
@@ -503,7 +521,7 @@ export const PatientCaseView: React.FC<PatientCaseViewProps> = ({
                       <strong className="font-bold text-amber-900 block mb-1">Recommended Physician Inquiries:</strong>
                       <ul className="list-disc pl-5 space-y-0.5 text-amber-800 font-medium">
                         {caseData.ai_summary.suggested_doctor_clarifications.map((c, i) => (
-                          <li key={i}>{c}</li>
+                          <li key={i}>{formatSummaryItem(c)}</li>
                         ))}
                       </ul>
                     </div>

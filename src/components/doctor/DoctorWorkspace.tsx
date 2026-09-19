@@ -32,19 +32,42 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
   const [loginError, setLoginError] = useState('');
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
+  const loadQueueForUser = async (user: any) => {
+    setLoadingQueue(true);
+    try {
+      let data = user?.role === 'doctor' ? await api.getMyAssignedCases() : await api.getQueue();
+      for (let attempt = 1; user?.role === 'doctor' && data.length === 0 && attempt <= 3; attempt += 1) {
+        await new Promise((resolve) => window.setTimeout(resolve, 500));
+        data = await api.getMyAssignedCases();
+      }
+      setQueue(Array.isArray(data) ? data : []);
+    } catch (e) {
+      console.warn('Queue fetch fallback to mock data:', e);
+      setQueue([...MOCK_QUEUE]);
+    } finally {
+      setLoadingQueue(false);
+    }
+  };
+
   useEffect(() => {
     const user = api.getStoredUser();
     if (user && (user.role === 'doctor' || user.role === 'admin')) {
       setCurrentUser(user);
+      loadQueueForUser(user);
     }
     // Do NOT auto-login â€” let the user see the login screen
   }, []);
 
   useEffect(() => {
     if (currentUser) {
-      fetchQueue();
+      setSelectedCaseId(null);
+      loadQueueForUser(currentUser);
+      const refreshTimer = window.setTimeout(() => {
+        loadQueueForUser(currentUser);
+      }, 1200);
+      return () => window.clearTimeout(refreshTimer);
     }
-  }, [currentUser]);
+  }, [currentUser?.id]);
 
   // Synchronize queue whenever a case is deleted or updated across workspaces
   useEffect(() => {
@@ -70,16 +93,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
   }, [selectedCaseId]);
 
   const fetchQueue = async () => {
-    setLoadingQueue(true);
-    try {
-      const data = currentUser?.role === 'doctor' ? await api.getMyAssignedCases() : await api.getQueue();
-      setQueue(Array.isArray(data) ? data : []);
-    } catch (e) {
-      console.warn('Queue fetch fallback to mock data:', e);
-      setQueue([...MOCK_QUEUE]);
-    } finally {
-      setLoadingQueue(false);
-    }
+    if (currentUser) await loadQueueForUser(currentUser);
   };
 
   const handleLogin = async (u: string, p: string) => {
@@ -88,7 +102,9 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
     try {
       // Try real backend first
       const res = await api.login(u, p);
+      setSelectedCaseId(null);
       setCurrentUser(res);
+      await loadQueueForUser(res);
     } catch {
       // Fallback: offline mock login
       const mockUser = DEMO_USERS[u];
@@ -96,7 +112,9 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
       if (mockUser && mockPass === p) {
         localStorage.setItem('medikiosk_token', mockUser.access_token);
         localStorage.setItem('medikiosk_user', JSON.stringify(mockUser));
+        setSelectedCaseId(null);
         setCurrentUser(mockUser);
+        await loadQueueForUser(mockUser);
       } else {
         setLoginError('Invalid username or password.');
       }
@@ -107,6 +125,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
 
   const handleLogout = () => {
     api.logout();
+    setSelectedCaseId(null);
     setCurrentUser(null);
   };
 
