@@ -1,5 +1,7 @@
 ﻿import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
 import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { firebaseAuth, firebaseConfigured } from './firebase';
 
 const configuredApiBase = import.meta.env.VITE_API_BASE?.trim();
 const API_BASE = configuredApiBase
@@ -17,44 +19,57 @@ function notifyQueueUpdated() {
   }
 }
 
+const FIREBASE_LOGIN_ALIASES: Record<string, string> = {
+  admin: 'admin@medikiosk.com',
+  'admin.meera': 'admin@medikiosk.com',
+  'dr.sharma': 'dr.sharma@medikiosk.com',
+  'dr.kapoor': 'dr.kapoor@medikiosk.com',
+  'staff.priya': 'staff.priya@medikiosk.com',
+  'staff.amit': 'staff.amit@medikiosk.com',
+};
+
+function resolveFirebaseEmail(username: string): string {
+  const normalized = username.trim().toLowerCase();
+  return FIREBASE_LOGIN_ALIASES[normalized] || normalized;
+}
+
+function getFirebaseRole(username: string): 'doctor' | 'staff' | 'admin' {
+  const normalized = username.trim().toLowerCase();
+  if (normalized.startsWith('admin')) return 'admin';
+  if (normalized.startsWith('staff')) return 'staff';
+  return 'doctor';
+}
+
 export const api = {
   // Auth
   async login(username: string, password: string) {
-    const formData = new URLSearchParams();
-    formData.append('username', username);
-    formData.append('password', password);
-
-    const res = await fetch(`${API_BASE}/auth/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: formData
-    });
-    const responseText = await res.text();
-    let responseData: any = null;
-    try {
-      responseData = responseText ? JSON.parse(responseText) : null;
-    } catch {
-      responseData = null;
+    if (!firebaseConfigured || !firebaseAuth) {
+      throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* environment variables.');
     }
 
-    if (!res.ok) {
-      const fallbackMessage = responseText && !responseText.trim().startsWith('<')
-        ? responseText.trim()
-        : 'Authentication service is unavailable';
-      throw new Error(responseData?.detail || fallbackMessage);
-    }
-
-    if (!responseData) {
-      throw new Error('Authentication service returned an invalid response');
-    }
-
-    const data = responseData;
+    const credential = await signInWithEmailAndPassword(
+      firebaseAuth,
+      resolveFirebaseEmail(username),
+      password
+    );
+    const firebaseUser = credential.user;
+    const role = getFirebaseRole(username);
+    const data = {
+      access_token: await firebaseUser.getIdToken(),
+      token_type: 'bearer',
+      role,
+      user_id: firebaseUser.uid,
+      username,
+      email: firebaseUser.email,
+      full_name: firebaseUser.displayName || username,
+    };
     localStorage.setItem('medikiosk_token', data.access_token);
     localStorage.setItem('medikiosk_user', JSON.stringify(data));
     return data;
   },
 
   logout() {
+    if (firebaseAuth) void signOut(firebaseAuth);
     localStorage.removeItem('medikiosk_token');
     localStorage.removeItem('medikiosk_user');
   },

@@ -153,5 +153,20 @@ VITE_API_BASE=https://<your-render-service>.onrender.com/api
 
 Replace `<your-render-service>` with the public URL of the `medikiosk-backend` Render service. Set the variable for the Production environment and trigger a new Vercel deployment. Without it, the frontend calls `/api` on Vercel itself, where the SPA rewrite returns `index.html` instead of the FastAPI response.
 
+### Firebase configuration
+
+The frontend now uses Firebase Authentication for sign-in. Add these Vercel Production environment variables from Firebase Project settings:
+
+```text
+VITE_FIREBASE_API_KEY=
+VITE_FIREBASE_AUTH_DOMAIN=
+VITE_FIREBASE_PROJECT_ID=
+VITE_FIREBASE_STORAGE_BUCKET=
+VITE_FIREBASE_MESSAGING_SENDER_ID=
+VITE_FIREBASE_APP_ID=
+```
+
+Create the matching Email/Password users in Firebase Authentication. The current demo username fields map `admin` and `admin.meera` to `admin@medikiosk.com`, `dr.sharma` to `dr.sharma@medikiosk.com`, `dr.kapoor` to `dr.kapoor@medikiosk.com`, and similarly for the staff accounts.
+
 ---
 *Built with ❤️ by Code Titans for MediKiosk • Health Tech Hackathon 2026*
