@@ -1,7 +1,10 @@
 ﻿import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
 import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
 
-const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+const configuredApiBase = import.meta.env.VITE_API_BASE?.trim();
+const API_BASE = configuredApiBase
+  ? configuredApiBase.replace(/\/+$/, '')
+  : '/api';
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('medikiosk_token');

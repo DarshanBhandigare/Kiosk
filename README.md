@@ -143,5 +143,15 @@ python -m pytest backend/tests -v
 docker-compose up --build -d
 ```
 
+### Vercel + Render
+
+The Vercel deployment serves the frontend only. The FastAPI backend is deployed separately by the `render.yaml` service. Configure this Vercel environment variable before building or redeploying:
+
+```text
+VITE_API_BASE=https://<your-render-service>.onrender.com/api
+```
+
+Replace `<your-render-service>` with the public URL of the `medikiosk-backend` Render service. Set the variable for the Production environment and trigger a new Vercel deployment. Without it, the frontend calls `/api` on Vercel itself, where the SPA rewrite returns `index.html` instead of the FastAPI response.
+
 ---
 *Built with ❤️ by Code Titans for MediKiosk • Health Tech Hackathon 2026*
