@@ -22,6 +22,8 @@ services:
         value: "true"
       - key: HMIS_FHIR_EXPORT
         value: "true"
+      - key: FIREBASE_WEB_API_KEY
+        sync: false
 
 databases:
   - name: medikiosk-db

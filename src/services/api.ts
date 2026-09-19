@@ -1,12 +1,32 @@
 ﻿import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
 import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
-import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
-import { firebaseAuth, firebaseConfigured } from './firebase';
+import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
+import { firebaseAuth, firebaseConfigured, firebaseProvisioningAuth } from './firebase';
 
 const configuredApiBase = import.meta.env.VITE_API_BASE?.trim();
 const API_BASE = configuredApiBase
   ? configuredApiBase.replace(/\/+$/, '')
   : '/api';
+
+const FIREBASE_STAFF_DIRECTORY = [
+  { id: 'firebase-admin', username: 'admin', email: 'admin@medikiosk.com', full_name: 'MediKiosk Administrator', role_name: 'admin', department: 'Hospital Administration', is_active: true },
+  { id: 'firebase-staff-amit', username: 'staff.amit', email: 'staff.amit@medikiosk.com', full_name: 'Amit Kumar', role_name: 'staff', department: 'OPD Triage', is_active: true },
+  { id: 'firebase-staff-priya', username: 'staff.priya', email: 'staff.priya@medikiosk.com', full_name: 'Priya Deshpande', role_name: 'staff', department: 'OPD Triage', is_active: true },
+  { id: 'firebase-dr-kapoor', username: 'dr.kapoor', email: 'dr.kapoor@medikiosk.com', full_name: 'Dr. Rajiv Kapoor', role_name: 'doctor', department: 'Cardiology', is_active: true },
+  { id: 'firebase-dr-vaidya', username: 'dr.vaidya', email: 'dr.vaidya@medikiosk.com', full_name: 'Dr. Rajesh Vaidya', role_name: 'doctor', department: 'Ayurveda Consultation', is_active: true },
+  { id: 'firebase-dr-kulkarni', username: 'dr.kulkarni', email: 'dr.kulkarni@medikiosk.com', full_name: 'Dr. Arvind Kulkarni', role_name: 'doctor', department: 'Cardiology', is_active: true },
+  { id: 'firebase-dr-sharma', username: 'dr.sharma', email: 'dr.sharma@medikiosk.com', full_name: 'Dr. Anjali Sharma', role_name: 'doctor', department: 'General Medicine', is_active: true },
+];
+const FIREBASE_DIRECTORY_STORAGE_KEY = 'medikiosk_firebase_directory';
+
+function getFirebaseDirectory() {
+  try {
+    const created = JSON.parse(localStorage.getItem(FIREBASE_DIRECTORY_STORAGE_KEY) || '[]');
+    return [...FIREBASE_STAFF_DIRECTORY, ...(Array.isArray(created) ? created : [])];
+  } catch {
+    return FIREBASE_STAFF_DIRECTORY;
+  }
+}
 
 function getAuthHeader(): Record<string, string> {
   const token = localStorage.getItem('medikiosk_token');
@@ -19,51 +39,33 @@ function notifyQueueUpdated() {
   }
 }
 
-const FIREBASE_LOGIN_ALIASES: Record<string, string> = {
-  admin: 'admin@medikiosk.com',
-  'admin.meera': 'admin@medikiosk.com',
-  'dr.sharma': 'dr.sharma@medikiosk.com',
-  'dr.kulkarni': 'dr.kulkarni@medikiosk.com',
-  'dr.vaidya': 'dr.vaidya@medikiosk.com',
-  'dr.kapoor': 'dr.kapoor@medikiosk.com',
-  'staff.priya': 'staff.priya@medikiosk.com',
-  'staff.amit': 'staff.amit@medikiosk.com',
-};
-
-function resolveFirebaseEmail(username: string): string {
-  const normalized = username.trim().toLowerCase();
-  return FIREBASE_LOGIN_ALIASES[normalized] || normalized;
-}
-
-function getFirebaseRole(username: string): 'doctor' | 'staff' | 'admin' {
-  const normalized = username.trim().toLowerCase();
-  if (normalized.startsWith('admin')) return 'admin';
-  if (normalized.startsWith('staff')) return 'staff';
-  return 'doctor';
-}
-
 export const api = {
   // Auth
-  async login(username: string, password: string) {
+  async login(email: string, password: string) {
     if (!firebaseConfigured || !firebaseAuth) {
       throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* environment variables.');
     }
 
     const credential = await signInWithEmailAndPassword(
       firebaseAuth,
-      resolveFirebaseEmail(username),
+      email.trim().toLowerCase(),
       password
     );
     const firebaseUser = credential.user;
-    const role = getFirebaseRole(username);
+    const normalizedEmail = firebaseUser.email?.toLowerCase() || email.trim().toLowerCase();
+    const role = normalizedEmail === 'admin@medikiosk.com'
+      ? 'admin'
+      : normalizedEmail.startsWith('staff.')
+        ? 'staff'
+        : 'doctor';
     const data = {
       access_token: await firebaseUser.getIdToken(),
       token_type: 'bearer',
       role,
       user_id: firebaseUser.uid,
-      username,
-      email: firebaseUser.email,
-      full_name: firebaseUser.displayName || username,
+      username: normalizedEmail.split('@')[0],
+      email: normalizedEmail,
+      full_name: firebaseUser.displayName || normalizedEmail.split('@')[0],
     };
     localStorage.setItem('medikiosk_token', data.access_token);
     localStorage.setItem('medikiosk_user', JSON.stringify(data));
@@ -430,22 +432,31 @@ export const api = {
   },
 
   async getAdminUsers() {
+    if (!configuredApiBase) return getFirebaseDirectory();
     const res = await fetch(`${API_BASE}/admin/users`, { headers: { ...getAuthHeader() } });
     if (!res.ok) throw new Error('Unable to load staff accounts');
     return res.json();
   },
 
-  async createDoctor(payload: { username: string; password: string; full_name: string; email?: string; department: string }) {
-    const res = await fetch(`${API_BASE}/admin/users`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
-      body: JSON.stringify({ ...payload, role_name: 'doctor' })
-    });
-    if (!res.ok) {
-      const error = await res.json().catch(() => null);
-      throw new Error(error?.detail || 'Unable to create doctor account');
+  async createDoctor(payload: { email_prefix: string; password: string; full_name: string; department: string }) {
+    if (!firebaseProvisioningAuth) {
+      throw new Error('Firebase is not configured. Add the VITE_FIREBASE_* environment variables.');
     }
-    return res.json();
+    const email = `${payload.email_prefix.trim().toLowerCase()}@medikiosk.com`;
+    const credential = await createUserWithEmailAndPassword(firebaseProvisioningAuth, email, payload.password);
+    const doctor = {
+      id: credential.user.uid,
+      username: payload.email_prefix.trim().toLowerCase(),
+      email,
+      full_name: payload.full_name,
+      department: payload.department,
+      role_name: 'doctor',
+      is_active: true,
+      created_at: new Date().toISOString(),
+    };
+    const created = getFirebaseDirectory().filter((user: any) => !FIREBASE_STAFF_DIRECTORY.some((baseUser) => baseUser.id === user.id));
+    localStorage.setItem(FIREBASE_DIRECTORY_STORAGE_KEY, JSON.stringify([...created, doctor]));
+    return doctor;
   },
 
   async removeDoctor(userId: string) {
@@ -486,5 +497,3 @@ export const api = {
     return res.json();
   }
 };
-
-

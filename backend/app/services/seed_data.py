@@ -31,7 +31,7 @@ def seed_database(db: Session):
     default_users = [
         {
             "username": "dr.sharma",
-            "email": "dr.sharma@medikiosk.in",
+            "email": "dr.sharma@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Anjali Sharma, MD",
             "department": "Internal Medicine / OPD",
@@ -39,7 +39,7 @@ def seed_database(db: Session):
         },
         {
             "username": "dr.kulkarni",
-            "email": "dr.kulkarni@medikiosk.in",
+            "email": "dr.kulkarni@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Arvind Kulkarni, DM",
             "department": "Cardiology",
@@ -47,15 +47,23 @@ def seed_database(db: Session):
         },
         {
             "username": "dr.vaidya",
-            "email": "dr.vaidya@medikiosk.in",
+            "email": "dr.vaidya@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Rajesh Vaidya, BAMS",
             "department": "Ayurveda Consultation",
             "role": "doctor"
         },
         {
+            "username": "dr.kapoor",
+            "email": "dr.kapoor@medikiosk.com",
+            "password": "Doctor@123",
+            "full_name": "Dr. Rajiv Kapoor, DM",
+            "department": "Cardiology",
+            "role": "doctor"
+        },
+        {
             "username": "dr.mehta",
-            "email": "dr.mehta@medikiosk.in",
+            "email": "dr.mehta@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Neha Mehta, DM",
             "department": "Neurology",
@@ -63,7 +71,7 @@ def seed_database(db: Session):
         },
         {
             "username": "dr.khan",
-            "email": "dr.khan@medikiosk.in",
+            "email": "dr.khan@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Farah Khan, MD",
             "department": "Pulmonology",
@@ -71,7 +79,7 @@ def seed_database(db: Session):
         },
         {
             "username": "dr.iyer",
-            "email": "dr.iyer@medikiosk.in",
+            "email": "dr.iyer@medikiosk.com",
             "password": "Doctor@123",
             "full_name": "Dr. Vikram Iyer, MS",
             "department": "Orthopaedics",
@@ -79,15 +87,23 @@ def seed_database(db: Session):
         },
         {
             "username": "staff.priya",
-            "email": "staff.priya@medikiosk.in",
+            "email": "staff.priya@medikiosk.com",
             "password": "Staff@123",
             "full_name": "Priya Deshpande, RN",
             "department": "OPD Triage & Reception",
             "role": "staff"
         },
         {
+            "username": "staff.amit",
+            "email": "staff.amit@medikiosk.com",
+            "password": "Staff@123",
+            "full_name": "Amit Kumar",
+            "department": "OPD Triage & Reception",
+            "role": "staff"
+        },
+        {
             "username": "admin",
-            "email": "admin@medikiosk.in",
+            "email": "admin@medikiosk.com",
             "password": "Admin@123",
             "full_name": "MediKiosk Administrator",
             "department": "Hospital IT & Systems",
@@ -108,6 +124,8 @@ def seed_database(db: Session):
                 is_active=True
             )
             db.add(user)
+        elif user.email != u_info["email"]:
+            user.email = u_info["email"]
 
     # 3. Seed Red Flag Rules
     for r_data in DEFAULT_RULES:

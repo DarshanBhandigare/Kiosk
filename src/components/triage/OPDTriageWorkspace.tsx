@@ -5,6 +5,7 @@ import {
   Stethoscope, Send, AlertCircle, X, Check, HeartPulse, Sparkles
 } from 'lucide-react';
 import { QueueItem, RedFlagAlert, CaseDetails, DoctorNote } from '../../types';
+import { MOCK_QUEUE } from '../../data/mockData';
 import { api } from '../../services/api';
 
 interface OPDTriageWorkspaceProps {
@@ -43,7 +44,7 @@ const timeAgo = (iso: string) => {
 export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout: parentLogout }) => {
   const storedUser = api.getStoredUser();
   const [currentUser, setCurrentUser] = useState<any>(storedUser?.role === 'staff' ? storedUser : null);
-  const [username, setUsername] = useState('staff.priya');
+  const [username, setUsername] = useState('staff.priya@medikiosk.com');
   const [password, setPassword] = useState('Staff@123');
   const [queue, setQueue] = useState<QueueItem[]>([]);
   const [alerts, setAlerts] = useState<RedFlagAlert[]>([]);
@@ -79,8 +80,8 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
     setError('');
     try {
       const [cases, activeAlerts, docList] = await Promise.all([
-        api.getQueue(),
-        api.getAlerts(false),
+        api.getQueue().catch(() => [...MOCK_QUEUE]),
+        api.getAlerts(false).catch(() => []),
         api.getAssignableDoctors().catch(() => [])
       ]);
       setQueue(cases);
@@ -306,13 +307,14 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
           <p className="text-xs text-slate-500 mb-6">Triage nurse and healthcare assistant access</p>
           <form onSubmit={handleLogin} className="space-y-4 text-left">
             <div>
-              <label className="block text-xs font-bold text-slate-700 mb-1">Staff Username</label>
+              <label className="block text-xs font-bold text-slate-700 mb-1">Staff Email</label>
               <input
+                type="email"
                 value={username}
                 onChange={(event) => setUsername(event.target.value)}
                 className="w-full p-3 rounded-xl border border-slate-300 text-sm focus:border-sky-600 focus:outline-hidden"
-                placeholder="e.g. staff.priya"
-                aria-label="Username"
+                placeholder="e.g. staff.priya@medikiosk.com"
+                aria-label="Email"
               />
             </div>
             <div>
@@ -803,4 +805,3 @@ export const OPDTriageWorkspace: React.FC<OPDTriageWorkspaceProps> = ({ onLogout
     </div>
   );
 };
-

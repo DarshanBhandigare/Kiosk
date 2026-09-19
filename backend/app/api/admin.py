@@ -1,4 +1,7 @@
 import datetime
+import os
+import re
+import httpx
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
@@ -35,17 +38,41 @@ def create_user(
     current_user: User = Depends(require_admin),
     db: Session = Depends(get_db)
 ):
-    existing = db.query(User).filter(User.username == user_in.username).first()
+    prefix = user_in.email_prefix.strip().lower()
+    if not re.fullmatch(r"[a-z0-9._-]{3,100}", prefix):
+        raise HTTPException(status_code=400, detail="Email name may use letters, numbers, dots, underscores, and hyphens")
+    email = f"{prefix}@medikiosk.com"
+    existing = db.query(User).filter((User.username == prefix) | (User.email == email)).first()
     if existing:
-        raise HTTPException(status_code=400, detail="Username already exists")
+        raise HTTPException(status_code=400, detail="A doctor with this email already exists")
 
     role = db.query(Role).filter(Role.name == user_in.role_name).first()
     if not role:
         raise HTTPException(status_code=400, detail=f"Role '{user_in.role_name}' does not exist")
 
+    firebase_api_key = os.getenv("FIREBASE_WEB_API_KEY") or os.getenv("VITE_FIREBASE_API_KEY")
+    if not firebase_api_key:
+        raise HTTPException(status_code=500, detail="Firebase server configuration is missing")
+    try:
+        firebase_response = httpx.post(
+            f"https://identitytoolkit.googleapis.com/v1/accounts:signUp?key={firebase_api_key}",
+            json={"email": email, "password": user_in.password, "returnSecureToken": True},
+            timeout=10,
+        )
+        if not firebase_response.is_success:
+            firebase_error = firebase_response.json().get("error", {}).get("message", "")
+            if firebase_error == "EMAIL_EXISTS":
+                raise HTTPException(status_code=400, detail="A Firebase account with this email already exists")
+            raise HTTPException(status_code=400, detail="Unable to create the Firebase account")
+        firebase_id_token = firebase_response.json().get("idToken")
+    except HTTPException:
+        raise
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="Could not contact Firebase to create the account")
+
     new_user = User(
-        username=user_in.username.strip(),
-        email=user_in.email.strip() or None if user_in.email else None,
+        username=prefix,
+        email=email,
         hashed_password=get_password_hash(user_in.password),
         full_name=user_in.full_name,
         role_id=role.id,
@@ -57,7 +84,12 @@ def create_user(
         db.commit()
     except IntegrityError:
         db.rollback()
-        raise HTTPException(status_code=400, detail="A user with this username or email already exists")
+        if firebase_id_token:
+            try:
+                httpx.post(f"https://identitytoolkit.googleapis.com/v1/accounts:delete?key={firebase_api_key}", json={"idToken": firebase_id_token}, timeout=10)
+            except httpx.HTTPError:
+                pass
+        raise HTTPException(status_code=400, detail="A user with this email already exists")
     db.refresh(new_user)
 
     AuditService.log(
@@ -66,7 +98,7 @@ def create_user(
         resource_type="USER",
         resource_id=new_user.id,
         user_id=current_user.id,
-        details={"username": new_user.username, "role": role.name}
+        details={"email": new_user.email, "role": role.name}
     )
 
     return {

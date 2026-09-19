@@ -21,7 +21,7 @@ class UserLogin(BaseModel):
     password: str
 
 class UserCreate(BaseModel):
-    username: str
+    email_prefix: str
     password: str
     full_name: str
     email: Optional[str] = None

@@ -3,7 +3,7 @@ import { initializeApp } from 'firebase/app';
 import { getFirestore } from 'firebase/firestore';
 import { getStorage } from 'firebase/storage';
 
-const firebaseConfig = {
+export const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
   projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
@@ -15,5 +15,9 @@ const firebaseConfig = {
 export const firebaseConfigured = Object.values(firebaseConfig).every(Boolean);
 export const firebaseApp = firebaseConfigured ? initializeApp(firebaseConfig) : null;
 export const firebaseAuth = firebaseApp ? getAuth(firebaseApp) : null;
+// A separate Auth instance lets an admin create a doctor account without
+// replacing the admin's own Firebase session.
+const provisioningApp = firebaseConfigured ? initializeApp(firebaseConfig, 'medikiosk-provisioning') : null;
+export const firebaseProvisioningAuth = provisioningApp ? getAuth(provisioningApp) : null;
 export const firestore = firebaseApp ? getFirestore(firebaseApp) : null;
 export const firebaseStorage = firebaseApp ? getStorage(firebaseApp) : null;

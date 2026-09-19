@@ -407,7 +407,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
       return null;
     }
   });
-  const [username, setUsername] = useState('admin');
+  const [username, setUsername] = useState('admin@medikiosk.com');
   const [password, setPassword] = useState('Admin@123');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -424,7 +424,7 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
       localStorage.setItem('medikiosk_admin_user', JSON.stringify(user));
       setCurrentUser(user);
     } catch (loginError) {
-      setError(loginError instanceof Error ? loginError.message : 'Invalid username or password.');
+      setError(loginError instanceof Error ? loginError.message : 'Invalid email or password.');
     } finally {
       setLoading(false);
     }
@@ -449,9 +449,9 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
 
           <form onSubmit={(e) => { e.preventDefault(); handleLogin(username, password); }} className="space-y-4 text-left">
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
               <input
-                type="text" value={username}
+                type="email" value={username}
                 onChange={e => setUsername(e.target.value)}
                 className="w-full p-3 rounded-xl border border-slate-300 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-violet-300"
               />
@@ -474,14 +474,14 @@ export const AdminWorkspace: React.FC<AdminWorkspaceProps> = ({ onLogout: parent
           </form>
 
           <div className="mt-6 pt-4 border-t border-slate-100 text-xs text-left">
-            <span className="text-slate-500 font-semibold block mb-2">Demo Admin Account:</span>
+            <span className="text-slate-500 font-semibold block mb-2">Admin Account:</span>
             <button
               type="button"
-              onClick={() => { setUsername('admin'); setPassword('Admin@123'); handleLogin('admin', 'Admin@123'); }}
+              onClick={() => { setUsername('admin@medikiosk.com'); setPassword('Admin@123'); handleLogin('admin@medikiosk.com', 'Admin@123'); }}
               className="w-full p-2.5 bg-violet-50 hover:bg-violet-100 border border-violet-200 rounded-xl text-left transition-colors"
             >
               <strong className="block text-slate-900">Meera Desai</strong>
-              <span className="text-[10px] text-slate-500">System Administrator - admin / Admin@123</span>
+              <span className="text-[10px] text-slate-500">System Administrator - admin@medikiosk.com</span>
             </button>
           </div>
         </div>

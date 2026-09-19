@@ -11,7 +11,7 @@ import { AbdmSimulatorModal } from './AbdmSimulatorModal';
 import { AdminRulesPanel } from './AdminRulesPanel';
 import { QueueItem } from '../../types';
 import { api } from '../../services/api';
-import { MOCK_QUEUE, DEMO_USERS, DEMO_PASSWORDS } from '../../data/mockData';
+import { MOCK_QUEUE } from '../../data/mockData';
 
 interface DoctorWorkspaceProps {
   initialRole?: 'doctor' | 'staff' | 'admin';
@@ -25,7 +25,7 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
   const [loadingQueue, setLoadingQueue] = useState(false);
 
   // Quick Login state
-  const defaultUser = initialRole === 'admin' ? 'admin.meera' : 'dr.sharma';
+  const defaultUser = initialRole === 'admin' ? 'admin@medikiosk.com' : 'dr.sharma@medikiosk.com';
   const defaultPass = initialRole === 'admin' ? 'Admin@123' : 'Doctor@123';
   const [username, setUsername] = useState(defaultUser);
   const [password, setPassword] = useState(defaultPass);
@@ -105,19 +105,8 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
       setSelectedCaseId(null);
       setCurrentUser(res);
       await loadQueueForUser(res);
-    } catch {
-      // Fallback: offline mock login
-      const mockUser = DEMO_USERS[u];
-      const mockPass = DEMO_PASSWORDS[u];
-      if (mockUser && mockPass === p) {
-        localStorage.setItem('medikiosk_token', mockUser.access_token);
-        localStorage.setItem('medikiosk_user', JSON.stringify(mockUser));
-        setSelectedCaseId(null);
-        setCurrentUser(mockUser);
-        await loadQueueForUser(mockUser);
-      } else {
-        setLoginError('Invalid username or password.');
-      }
+    } catch (error) {
+      setLoginError(error instanceof Error ? error.message : 'Invalid email or password.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -148,9 +137,9 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
             className="space-y-4 text-left"
           >
             <div>
-              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Username</label>
+              <label className="block text-xs font-bold text-slate-700 uppercase mb-1">Email</label>
               <input
-                type="text"
+                type="email"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 className="w-full p-3 rounded-xl border border-slate-300 text-xs font-medium"
@@ -180,14 +169,14 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
 
           {/* Quick Demo Logins */}
           <div className="mt-6 pt-4 border-t border-slate-100 text-xs space-y-2 text-left">
-            <span className="text-slate-500 font-semibold block">Quick Demo Doctor Logins:</span>
+            <span className="text-slate-500 font-semibold block">Quick Doctor Logins:</span>
             <div className="grid grid-cols-2 gap-2">
               <button
                 type="button"
                 onClick={() => {
-                  setUsername('dr.sharma');
+                  setUsername('dr.sharma@medikiosk.com');
                   setPassword('Doctor@123');
-                  handleLogin('dr.sharma', 'Doctor@123');
+                  handleLogin('dr.sharma@medikiosk.com', 'Doctor@123');
                 }}
                 className="p-2 bg-slate-50 hover:bg-teal-50 hover:border-teal-300 border border-slate-200 rounded-lg text-left"
               >
@@ -198,9 +187,9 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
               <button
                 type="button"
                 onClick={() => {
-                  setUsername('dr.kapoor');
+                  setUsername('dr.kapoor@medikiosk.com');
                   setPassword('Doctor@123');
-                  handleLogin('dr.kapoor', 'Doctor@123');
+                  handleLogin('dr.kapoor@medikiosk.com', 'Doctor@123');
                 }}
                 className="p-2 bg-slate-50 hover:bg-teal-50 hover:border-teal-300 border border-slate-200 rounded-lg text-left"
               >
@@ -350,4 +339,3 @@ export const DoctorWorkspace: React.FC<DoctorWorkspaceProps> = ({ initialRole = 
     </div>
   );
 };
-
