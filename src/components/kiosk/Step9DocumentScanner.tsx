@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+import React, { useState } from 'react';
 import { Upload, FileText, CheckCircle2, AlertCircle, Loader2, Sparkles, ArrowRight, ArrowLeft, Eye } from 'lucide-react';
 import { LanguageCode, translations } from '../../i18n/translations';
 import { api } from '../../services/api';
@@ -180,6 +180,13 @@ Discharge Rx: Tab Paracetamol 650mg TDS x 5 days`,
       const file = new File([blob], `${sample.type.toLowerCase()}_sample.txt`, { type: 'text/plain' });
       const activePatientId = await ensurePatientId();
       const docRes = await api.uploadDocument(activePatientId, file, sample.type);
+      
+      // If the API returns the generic offline fallback (because no backend is connected),
+      // we throw an error here to force the UI to use the rich sample extractions in the catch block.
+      if (docRes.ocr_raw_text?.includes('Offline document saved')) {
+        throw new Error('Trigger local demo fallback for sample document');
+      }
+      
       setScannedDocuments([...scannedDocuments, docRes]);
       setPreviewDoc(docRes);
     } catch (err: unknown) {
