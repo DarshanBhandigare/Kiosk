@@ -1,4 +1,4 @@
-﻿import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
+import { CaseDetails, QueueItem, Patient, MedicalDocument, TimelineEvent, RedFlagAlert } from '../types';
 import { MOCK_QUEUE, MOCK_CASE_DETAILS } from '../data/mockData';
 import { createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { firebaseAuth, firebaseConfigured, firebaseProvisioningAuth } from './firebase';
@@ -17,6 +17,7 @@ const FIREBASE_STAFF_DIRECTORY = [
   { id: 'firebase-dr-kulkarni', username: 'dr.kulkarni', email: 'dr.kulkarni@medikiosk.com', full_name: 'Dr. Arvind Kulkarni', role_name: 'doctor', department: 'Cardiology', is_active: true },
   { id: 'firebase-dr-sharma', username: 'dr.sharma', email: 'dr.sharma@medikiosk.com', full_name: 'Dr. Anjali Sharma', role_name: 'doctor', department: 'General Medicine', is_active: true },
 ];
+
 const FIREBASE_DIRECTORY_STORAGE_KEY = 'medikiosk_firebase_directory';
 
 function getFirebaseDirectory() {
@@ -29,7 +30,12 @@ function getFirebaseDirectory() {
 }
 
 function getAuthHeader(): Record<string, string> {
-  const token = localStorage.getItem('medikiosk_token');
+  // Try to get a fresh token from Firebase first
+  let token: string | null = null;
+  if (typeof firebaseAuth !== 'undefined' && firebaseAuth?.currentUser) {
+    // We rely on the listener in main.tsx to keep ls token updated.
+    token = localStorage.getItem('medikiosk_token');
+  }
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
@@ -67,6 +73,7 @@ export const api = {
       email: normalizedEmail,
       full_name: firebaseUser.displayName || normalizedEmail.split('@')[0],
     };
+    // Note: The listener in main.tsx will also set these items.
     localStorage.setItem('medikiosk_token', data.access_token);
     localStorage.setItem('medikiosk_user', JSON.stringify(data));
     return data;
@@ -74,8 +81,7 @@ export const api = {
 
   logout() {
     if (firebaseAuth) void signOut(firebaseAuth);
-    localStorage.removeItem('medikiosk_token');
-    localStorage.removeItem('medikiosk_user');
+    // Let the auth listener in main.tsx clean up ls when user becomes null
   },
 
   getStoredUser() {
@@ -164,6 +170,10 @@ export const api = {
 
 
   async registerPatient(patientData: Partial<Patient>) {
+    if (!configuredApiBase) {
+      const id = `patient-${crypto.randomUUID()}`;
+      return { id, patient_id_number: `PAT-${Date.now().toString().slice(-6)}`, ...patientData };
+    }
     const res = await fetch(`${API_BASE}/patients`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -174,6 +184,7 @@ export const api = {
   },
 
   async recordConsent(patientId: string, consentGiven = true) {
+    if (!configuredApiBase) return { patient_id: patientId, consent_given: consentGiven, recorded_at: new Date().toISOString() };
     const res = await fetch(`${API_BASE}/patients/${patientId}/consent`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -185,6 +196,7 @@ export const api = {
 
   // Kiosk Sessions & Adaptive Interview
   async createSession(language: string, patientId?: string) {
+    if (!configuredApiBase) return { id: `session-${crypto.randomUUID()}`, language, patient_id: patientId };
     const res = await fetch(`${API_BASE}/sessions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -195,6 +207,13 @@ export const api = {
   },
 
   async startInterview(sessionId: string, chiefComplaint: string, language: string) {
+    if (!configuredApiBase) {
+      return {
+        has_next: true, question_key: 'duration', category: 'DURATION', input_type: 'VOICE_OR_TOUCH',
+        question_text: language === 'hi' ? 'आपको यह समस्या कितने समय से है?' : language === 'mr' ? 'हा त्रास किती दिवसांपासून होत आहे?' : 'How long have you had this issue?',
+        options: ['Less than 24 hours', '2 to 7 days', '1 to 4 weeks', 'More than 1 month'], session_id: sessionId, chief_complaint: chiefComplaint,
+      };
+    }
     const res = await fetch(
       `${API_BASE}/interview/start?session_id=${sessionId}&chief_complaint=${encodeURIComponent(chiefComplaint)}&language=${language}`,
       { method: 'POST' }
@@ -212,6 +231,7 @@ export const api = {
     input_mode: string;
     language: string;
   }) {
+    if (!configuredApiBase) return { has_next: false, session_id: payload.session_id };
     const res = await fetch(`${API_BASE}/interview/answer`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -223,6 +243,13 @@ export const api = {
 
   // Documents & OCR
   async uploadDocument(patientId: string, file: File, documentType: string, caseId?: string) {
+    if (!configuredApiBase) {
+      return {
+        id: `document-${crypto.randomUUID()}`, patient_id: patientId, case_id: caseId,
+        document_type: documentType, file_name: file.name, file_size_bytes: file.size, mime_type: file.type,
+        ocr_status: 'COMPLETED', ocr_raw_text: 'Offline document saved. Automated OCR requires a configured processing service.', extractions: [],
+      };
+    }
     const formData = new FormData();
     formData.append('patient_id', patientId);
     formData.append('document_type', documentType);
@@ -241,6 +268,9 @@ export const api = {
   },
 
   async verifyExtraction(extractionId: string, isVerified = true) {
+    if (!configuredApiBase) {
+      return { id: extractionId, is_verified: isVerified };
+    }
     const res = await fetch(`${API_BASE}/documents/extraction/${extractionId}/verify?is_verified=${isVerified}`, {
       method: 'POST',
       headers: { ...getAuthHeader() }
@@ -251,6 +281,19 @@ export const api = {
 
   // Cases & Queue
   async createAndSubmitCase(caseData: any) {
+    if (!configuredApiBase) {
+      const id = `case-${crypto.randomUUID()}`;
+      const tokenNumber = `T-${Math.floor(100 + Math.random() * 900)}`;
+      const item: any = {
+        id, token_number: tokenNumber, patient_id: caseData.patient_id, patient_id_number: caseData.patient_id,
+        patient_name: 'New Patient', patient_age: 0, patient_sex: 'Unknown', chief_complaint: caseData.chief_complaint,
+        department: caseData.department || 'OPD General', status: 'WAITING_REVIEW', has_red_flag: false,
+        created_at: new Date().toISOString(), assigned_doctor_name: null,
+      };
+      MOCK_QUEUE.unshift(item);
+      notifyQueueUpdated();
+      return { id, case_id: id, patient_id: caseData.patient_id, token_number: tokenNumber, department: item.department, has_red_flag: false };
+    }
     const res = await fetch(`${API_BASE}/cases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -279,12 +322,29 @@ export const api = {
   },
 
   async getAssignableDoctors() {
+    if (!configuredApiBase) {
+      return getFirebaseDirectory()
+        .filter((user: any) => user.role_name === 'doctor' && user.is_active)
+        .map((user: any) => ({ id: user.id, full_name: user.full_name, department: user.department }));
+    }
     const res = await fetch(`${API_BASE}/cases/doctors`, { headers: { ...getAuthHeader() } });
     if (!res.ok) throw new Error('Unable to load doctors');
     return res.json();
   },
 
   async assignCaseDoctor(caseId: string, doctorId: string) {
+    if (!configuredApiBase) {
+      const doctor = getFirebaseDirectory().find((user: any) => user.id === doctorId && user.role_name === 'doctor');
+      const caseItem = MOCK_QUEUE.find((item) => item.id === caseId);
+      if (!doctor || !caseItem) throw new Error('Doctor or patient case was not found.');
+      Object.assign(caseItem, {
+        assigned_doctor_name: doctor.full_name,
+        department: doctor.department || caseItem.department,
+        status: 'UNDER_REVIEW',
+      });
+      notifyQueueUpdated();
+      return { case_id: caseId, doctor_id: doctor.id, doctor_name: doctor.full_name, status: 'UNDER_REVIEW' };
+    }
     const res = await fetch(`${API_BASE}/cases/${caseId}/assign-doctor`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', ...getAuthHeader() },
@@ -356,6 +416,13 @@ export const api = {
   },
 
   async approveCase(caseId: string, notes = 'Case history reviewed and approved.') {
+    if (!configuredApiBase) {
+      const caseItem = MOCK_QUEUE.find((item) => item.id === caseId);
+      if (!caseItem) throw new Error('Patient case was not found.');
+      Object.assign(caseItem, { status: 'APPROVED' });
+      notifyQueueUpdated();
+      return { case_id: caseId, case_status: 'APPROVED', reviewed_at: new Date().toISOString(), notes };
+    }
     const res = await fetch(`${API_BASE}/doctor/cases/${caseId}/approve`, {
       method: 'POST',
       headers: {
@@ -374,6 +441,13 @@ export const api = {
   },
 
   async markCaseDiagnosed(caseId: string, notes = 'Diagnosis recorded and case marked diagnosed by attending physician.') {
+    if (!configuredApiBase) {
+      const caseItem = MOCK_QUEUE.find((item) => item.id === caseId);
+      if (!caseItem) throw new Error('Patient case was not found.');
+      Object.assign(caseItem, { status: 'DIAGNOSED' });
+      notifyQueueUpdated();
+      return { case_id: caseId, case_status: 'DIAGNOSED', reviewed_at: new Date().toISOString(), notes };
+    }
     const res = await fetch(`${API_BASE}/doctor/cases/${caseId}/diagnose`, {
       method: 'POST',
       headers: {
@@ -392,6 +466,13 @@ export const api = {
   },
 
   async markCaseTriaged(caseId: string) {
+    if (!configuredApiBase) {
+      const caseItem = MOCK_QUEUE.find((item) => item.id === caseId);
+      if (!caseItem) throw new Error('Patient case was not found.');
+      Object.assign(caseItem, { status: 'TRIAGED' });
+      notifyQueueUpdated();
+      return { case_id: caseId, status: 'TRIAGED' };
+    }
     const res = await fetch(`${API_BASE}/triage/cases/${caseId}/mark-triaged`, {
       method: 'POST',
       headers: { ...getAuthHeader() }
@@ -403,6 +484,13 @@ export const api = {
   },
 
   async escalateCaseToDoctor(caseId: string) {
+    if (!configuredApiBase) {
+      const caseItem = MOCK_QUEUE.find((item) => item.id === caseId);
+      if (!caseItem) throw new Error('Patient case was not found.');
+      Object.assign(caseItem, { status: 'UNDER_REVIEW' });
+      notifyQueueUpdated();
+      return { case_id: caseId, status: 'UNDER_REVIEW' };
+    }
     const res = await fetch(`${API_BASE}/triage/cases/${caseId}/escalate`, {
       method: 'POST',
       headers: { ...getAuthHeader() }

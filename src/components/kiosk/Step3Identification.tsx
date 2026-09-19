@@ -24,6 +24,18 @@ export const Step3Identification: React.FC<Step3Props> = ({
   const [verifiedAbha, setVerifiedAbha] = useState<any>(null);
   const [errorMsg, setErrorMsg] = useState('');
 
+  const ageFromDateOfBirth = (dateOfBirth?: string) => {
+    if (!dateOfBirth) return undefined;
+    const birthDate = new Date(`${dateOfBirth}T00:00:00`);
+    if (Number.isNaN(birthDate.getTime())) return undefined;
+    const today = new Date();
+    let age = today.getFullYear() - birthDate.getFullYear();
+    const birthdayHasPassed = today.getMonth() > birthDate.getMonth()
+      || (today.getMonth() === birthDate.getMonth() && today.getDate() >= birthDate.getDate());
+    if (!birthdayHasPassed) age -= 1;
+    return age;
+  };
+
   const handleVerifyAbha = async (idToVerify?: string) => {
     const id = idToVerify || abhaInput;
     if (!id.trim()) {
@@ -42,7 +54,8 @@ export const Step3Identification: React.FC<Step3Props> = ({
         sex: res.gender,
         contact_number: res.mobile,
         address: res.address,
-        age: 54 // Default calculated from DOB
+        date_of_birth: res.date_of_birth,
+        age: ageFromDateOfBirth(res.date_of_birth) ?? patientData.age,
       });
     } catch (e: any) {
       setVerifiedAbha(null);
