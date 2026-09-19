@@ -125,6 +125,13 @@ export const KioskWizard: React.FC<KioskWizardProps> = ({
       // 2. Submit Case
       const casePayload = {
         patient_id: patId,
+        patient_name: patientData.full_name || 'New Patient',
+        patient_age: patientData.age,
+        patient_sex: patientData.sex,
+        contact_number: patientData.contact_number,
+        abha_id: patientData.abha_id,
+        address: patientData.address,
+        preferred_language: language,
         session_id: sessionId || `sess-${Date.now()}`,
         chief_complaint: chiefComplaint || 'General health consultation',
         department: chiefComplaint.toLowerCase().includes('chest') ? 'Cardiology' : 'OPD General',
@@ -141,7 +148,8 @@ export const KioskWizard: React.FC<KioskWizardProps> = ({
         medications: clinicalHistory.medications || [],
         allergies: clinicalHistory.allergies || [],
         lifestyle: clinicalHistory.lifestyle,
-        ayurveda: clinicalHistory.ayurveda
+        ayurveda: clinicalHistory.ayurveda,
+        documents: scannedDocuments,
       };
 
       const result = await api.createAndSubmitCase(casePayload);

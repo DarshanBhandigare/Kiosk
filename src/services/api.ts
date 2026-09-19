@@ -284,16 +284,126 @@ export const api = {
     if (!configuredApiBase) {
       const id = `case-${crypto.randomUUID()}`;
       const tokenNumber = `T-${Math.floor(100 + Math.random() * 900)}`;
+      const now = new Date().toISOString();
+
       const item: any = {
         id, token_number: tokenNumber, patient_id: caseData.patient_id, patient_id_number: caseData.patient_id,
-        patient_name: 'New Patient', patient_age: 0, patient_sex: 'Unknown', chief_complaint: caseData.chief_complaint,
+        patient_name: caseData.patient_name || 'New Patient',
+        patient_age: caseData.patient_age || 0,
+        patient_sex: caseData.patient_sex || 'Unknown',
+        chief_complaint: caseData.chief_complaint,
         department: caseData.department || 'OPD General', status: 'WAITING_REVIEW', has_red_flag: false,
-        created_at: new Date().toISOString(), assigned_doctor_name: null,
+        created_at: now, assigned_doctor_name: null,
       };
+
+      // Build medications summary for AI text
+      const medList = (caseData.medications || []).map((m: any) => `${m.drug_name} ${m.dosage} ${m.frequency}`).join(', ');
+      const histList = (caseData.medical_histories || []).map((h: any) => h.condition_name).join(', ');
+
+      // Build a rich full case detail entry so Doctor Review shows full summary
+      const fullCase: any = {
+        id, token_number: tokenNumber,
+        patient: {
+          id: caseData.patient_id,
+          patient_id_number: caseData.patient_id,
+          full_name: caseData.patient_name || 'New Patient',
+          age: caseData.patient_age || 0,
+          sex: caseData.patient_sex || 'Unknown',
+          contact_number: caseData.contact_number || 'N/A',
+          abha_id: caseData.abha_id,
+          preferred_language: caseData.preferred_language || 'en',
+          address: caseData.address || '',
+        },
+        chief_complaint: caseData.chief_complaint,
+        hpi_summary: caseData.chief_complaint,
+        department: caseData.department || 'OPD General',
+        status: 'WAITING_REVIEW',
+        has_red_flag: false,
+        symptoms: (caseData.symptoms || []).map((s: any, i: number) => ({
+          name: s.custom_name || s.name || caseData.chief_complaint,
+          is_primary: i === 0,
+          severity: s.severity || 7,
+          duration: s.duration || 'Not specified',
+        })),
+        medical_histories: caseData.medical_histories || [],
+        medications: caseData.medications || [],
+        allergies: caseData.allergies || [],
+        family_histories: [],
+        lifestyle: caseData.lifestyle || {},
+        ayurveda: caseData.ayurveda,
+        documents: (caseData.documents || []).map((doc: any) => ({
+          ...doc,
+          uploaded_at: now,
+        })),
+        timeline: [
+          {
+            id: `tl-${id}-1`,
+            event_date: now,
+            event_type: 'CONSULTATION',
+            title: 'OPD Intake & Triage — TODAY',
+            description: caseData.chief_complaint,
+            source: 'PATIENT_REPORTED',
+            confidence: 'HIGH',
+            verified: true,
+            created_at: now,
+          },
+          ...(caseData.documents || []).map((doc: any, i: number) => ({
+            id: `tl-${id}-doc-${i}`,
+            event_date: now,
+            event_type: 'DOCUMENT_SCAN',
+            title: `Document Scanned: ${doc.file_name || doc.document_type}`,
+            description: (doc.extractions || []).map((e: any) => `${e.extracted_key}: ${e.extracted_value}`).join(', '),
+            source: 'DOCUMENT_EXTRACTED',
+            confidence: 'HIGH',
+            verified: false,
+            created_at: now,
+          })),
+        ],
+        alerts: [],
+        doctor_notes: [],
+        doctor_reviews: [],
+        voice_transcripts: [],
+        ai_summary: {
+          ai_disclaimer: 'This summary is generated from patient-reported data collected at the kiosk. It does NOT constitute a diagnosis. Clinical decisions must be made by the attending physician.',
+          patient_overview: `${caseData.patient_name || 'Patient'} is a ${caseData.patient_age || '?'}-year-old ${(caseData.patient_sex || 'patient').toLowerCase()} presenting with: ${caseData.chief_complaint}.${histList ? ` Known history of: ${histList}.` : ''}${medList ? ` Current medications: ${medList}.` : ''}`,
+          chief_complaint: caseData.chief_complaint,
+          patient_reported_symptoms: (caseData.symptoms || []).map((s: any) =>
+            `${s.custom_name || s.name}${s.severity ? ` (${s.severity}/10)` : ''}${s.duration ? ` — ${s.duration}` : ''}`
+          ),
+          past_medical_history: (caseData.medical_histories || []).map((h: any) =>
+            `${h.condition_name}${h.diagnosed_year_or_duration ? ` (${h.diagnosed_year_or_duration})` : ''}`
+          ),
+          current_medications: (caseData.medications || []).map((m: any) =>
+            `${m.drug_name} ${m.dosage} ${m.frequency}`
+          ),
+          reported_allergies: (caseData.allergies || []).map((a: any) => a.allergen_name || a),
+          document_extracted_findings: (caseData.documents || []).flatMap((doc: any) =>
+            (doc.extractions || []).map((e: any) => `${e.extracted_key}: ${e.extracted_value}`)
+          ),
+          red_flag_concerns: [],
+          lifestyle_context: caseData.lifestyle
+            ? [
+                caseData.lifestyle.diet_type ? `Diet: ${caseData.lifestyle.diet_type}` : '',
+                caseData.lifestyle.smoking_status ? `Smoking: ${caseData.lifestyle.smoking_status}` : '',
+                caseData.lifestyle.alcohol_status ? `Alcohol: ${caseData.lifestyle.alcohol_status}` : '',
+                caseData.lifestyle.sleep_hours ? `Sleep: ${caseData.lifestyle.sleep_hours}` : '',
+              ].filter(Boolean).join('. ')
+            : '',
+          suggested_doctor_clarifications: [
+            'Please review the patient-reported history and confirm accuracy.',
+            'Review any scanned documents for extracted clinical entities.',
+          ],
+        },
+        created_at: now,
+        submitted_at: now,
+      };
+
+      MOCK_CASE_DETAILS[id] = fullCase;
       MOCK_QUEUE.unshift(item);
       notifyQueueUpdated();
       return { id, case_id: id, patient_id: caseData.patient_id, token_number: tokenNumber, department: item.department, has_red_flag: false };
     }
+
     const res = await fetch(`${API_BASE}/cases`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
