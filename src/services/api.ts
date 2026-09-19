@@ -23,6 +23,8 @@ const FIREBASE_LOGIN_ALIASES: Record<string, string> = {
   admin: 'admin@medikiosk.com',
   'admin.meera': 'admin@medikiosk.com',
   'dr.sharma': 'dr.sharma@medikiosk.com',
+  'dr.kulkarni': 'dr.kulkarni@medikiosk.com',
+  'dr.vaidya': 'dr.vaidya@medikiosk.com',
   'dr.kapoor': 'dr.kapoor@medikiosk.com',
   'staff.priya': 'staff.priya@medikiosk.com',
   'staff.amit': 'staff.amit@medikiosk.com',
